@@ -1,8 +1,11 @@
 import cv2 as cv 
-
 from tract_point import *
 import numpy as np
 import math
+
+"""debug global property"""
+# pstatus == "release"
+pstatus == "debug"
 
 K_cross = np.array([
     [-4,-4,-4,5,5,5,-4,-4,-4],
@@ -39,7 +42,6 @@ K_rect = np.array([
     [-1,-1,-1,-1,-1,-1,-1,-1,-1],
     [-1,-1,-1,-1,-1,-1,-1,-1,-1]
 ])
-
 
 def my_show(frame, ratio=1, center_point=(-1,-1), time=0):
     # print(center_point)
@@ -711,11 +713,6 @@ class FakeMs:
     
     def update(self):
         self.cnt += 1
-
-"""debug global property"""
-
-# pstatus = "release"
-pstatus = "debug"
 
 if pstatus == "debug":
     cap = cv2.VideoCapture("C:\\Users\\LENOVO\\Videos\\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")

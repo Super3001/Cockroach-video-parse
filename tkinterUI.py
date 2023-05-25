@@ -7,7 +7,11 @@ from processing import *
 from light import *
 from deal_with_data import *
 import utils
-import sys
+import sys, os
+
+# 项目状态
+# pstatus = "release"
+pstatus = "debug"
 
 # 创建其他窗口并运行
 # ...
@@ -21,10 +25,6 @@ msg_NoVideo = '请先导入视频'
 
 # 缩放比例 x: cm/px
 View = 50 # 屏幕上50px -> 1cm
-
-# 项目状态
-# pstatus = "release"
-pstatus = "debug"
 
 # 设置全局异常处理程序
 # utils.set_exit()
@@ -274,6 +274,7 @@ class APP:
         
     def view_result(self):
         data_dealer = Dealer(self.cap,self.filename,self.master,self.progressbar,self.detect_mark_str)
+        data_dealer.To_origin()
         if self.light:
             file_light = open('out-light-every.txt','r')
             data_dealer.deal_time(file_light, self.fps)
@@ -285,34 +286,35 @@ class APP:
             file_f = open('out-color-1.txt','r')
             file_b = open('out-color-2.txt','r')
             data_dealer.parse_fbpoints(file_f,file_b,self.fps)
-            if self.magRatio > 0:
-                data_dealer.data_change_ratio(self.Ratio_to_cm)
             
         elif self.status == 'meanshift':
             file_f = open('out-meanshift-1.txt','r')
             file_b = open('out-meanshift-2.txt','r')
             data_dealer.parse_fbpoints(file_f,file_b,self.fps)
-            if self.magRatio > 0:
-                data_dealer.data_change_ratio(self.Ratio_to_cm)
             
         elif self.status == 'feature':
             file_f = open('out-feature-1.txt','r')
             file_b = open('out-feature-2.txt','r')
             data_dealer.parse_fbpoints(file_f,file_b,self.fps)
-            if self.magRatio > 0:
-                data_dealer.data_change_ratio(self.Ratio_to_cm)
             
         elif self.status == 'contour':
             file_center = open('out-contour-center.txt','r')
             file_angle = open('out-contour-theta.txt','r')
             data_dealer.parse_center_angle(file_center,file_angle,self.fps)
-            if self.magRatio > 0:
-                data_dealer.data_change_ratio(self.Ratio_to_cm)
             
         else:
             tkinter.messagebox.showinfo(message='请先处理视频')
             return
-    
+
+        if self.magRatio > 0:
+            data_dealer.data_change_ratio(self.Ratio_to_cm)
+            data_dealer.To_centimeter()
+        dirs = ["results", # output_txt_directory
+                "fig"] # output_png_directory
+        for directory_name in dirs:
+            if not os.path.exists(directory_name):
+                os.mkdir(directory_name)
+        
         tier1 = Tk()
         result_window = ResWindow(tier1,data_dealer)
         tier1.mainloop()
@@ -320,7 +322,6 @@ class APP:
     def go_help(self):
         # 放一个演示视频
         pass
-        
     
 class ResWindow:
     def __init__(self,master,dealer) -> None:

@@ -6,6 +6,10 @@ from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit
 from PyQt5.QtGui import QIcon
 import numpy as np
 
+"""debug global property"""
+# pstatus = "release"
+pstatus = "debug"
+
 use_global = True
 """@deprecated global vars"""
 if use_global:
@@ -327,11 +331,6 @@ class Identifier:
                 cv2.imshow('roi',cut_img)
         else:
             pass
-
-"""debug global property"""
-
-# pstatus = "release"
-pstatus = "debug"
 
 if pstatus == "debug":
     cap = cv2.VideoCapture("C:\\Users\\LENOVO\\Videos\\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")

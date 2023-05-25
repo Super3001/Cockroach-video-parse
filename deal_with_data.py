@@ -5,6 +5,11 @@ from scipy import interpolate
 import matplotlib.pyplot as plt
 import datetime
 import utils
+import matplotlib
+matplotlib.use('TkAgg')
+
+# pstatus = "release"
+pstatus = "debug"
 
 # global exception exit
 utils.set_exit()
@@ -190,6 +195,8 @@ class Dealer:
             cnt += 1
         # showinfo(message='共检测到数据'+str(len(self.X_mid)))
         self.frames = [i[0] for i in self.X_mid]
+        self.num = len(self.frames)
+        self.stimus = self.sti_segment()
 
     """bool data_format"""            
     def deal_time(self,file_light, fps):
@@ -255,7 +262,7 @@ class Dealer:
     
     """@depricated: segment and plot in one function"""        
     def segment_plt(self,data:list,xlabel,ylabel,name,colors=['b','y']):
-        plt.figure(0)
+        plt.figure()
         num_stimulate = len(self.lighttime)
         for i, stimulus in enumerate(self.lighttime):
             # subplot(1,num_stimulate,i)
@@ -332,13 +339,13 @@ class Dealer:
             
         """write file and plot simultaneously"""
         with open(f'results\Angle {self.filename},{self.timestr}.txt','w') as f:
-            # plt.figure(0)
+            # plt.figure()
             # num_stimulate = len(self.lighttime)
             f.write('frame_num: angle(deg)')        
             for i, sti_ls in enumerate(self.stimus):
                 # subplot(1,num_stimulate,i)
                 # plt.subplot(int(f'{num_stimulate}1{i}'))
-                plt.figure(0)
+                plt.figure(f'pAngle-{i}')
                 plt_x = []
                 plt_y = []
                 f.write(f'\nstimulus {i} ({len(sti_ls)} frames):\n')
@@ -356,7 +363,7 @@ class Dealer:
                 plt.xlabel('number of frame')
                 plt.ylabel('angle(deg)')
                 plt.title('angle curve')
-                plt.savefig(f'pAngle-stimulus{i}.png')
+                plt.savefig(f'fig\pAngle-stimulus{i}.png')
                 plt.show()
                     
             # plt.show()
@@ -366,25 +373,8 @@ class Dealer:
                     f.write(black_sign+'\n')
                 f.write(f'{self.frames[i]:3d}: {self.Theta[i]:.6f}\n')
             f.write('end\n')
-            
-        return
-            
-        # self.segment_plt(self.Theta,'number of frame','angle(deg)','Angle Curve')
-        # print(self.stimus)
-        # plt.xlabel('number of frame')
-        # plt.ylabel('angle(deg)')
-        # plt.title('angle curve')
-        # self.segment(-20,20)
-        # plt.savefig('pAngle.png')
-        # plt.savefig('squares.png')
-        # plt.show()
-        # self.pAngle.xaxis.axis_label = "帧序号"
-        # self.pAngle.yaxis.axis_label = "角度"
-       
-        # self.pAngle_interp.xaxis.axis_label = "帧序号"
-        # self.pAngle_interp.yaxis.axis_label = "角度"
         
-        plt.figure()
+        plt.figure('pAngle-interp')
         # plt.subplot(122)
         begin = 0
         end = len(self.frames)
@@ -397,6 +387,7 @@ class Dealer:
         self.interp_omega = y_der
         self.interp_x = x_base
         
+        """to be changed"""
         self.segment(-20,20)
         plt.xlabel('number of frame')
         plt.ylabel('angle(deg)')
@@ -404,13 +395,13 @@ class Dealer:
         # output_file(filename="res_Angle.html", title="angle result")
         # save(self.pAngle)
         # save(self.pAngle_interp)
-        points = [(self.frames[i],self.Theta[i]) for i in range(len(self.frames)) if i in self.stimus]
+        points = [(self.frames[i],self.Theta[i]) for i in range(len(self.frames)) if i in self.stimus[0]]
         tList = np.linspace(0,1,200)
         # show_curve(points,tList)
         # show_der(points,tList)
         # show(self.pAngle)
         # show(self.pAngle_interp)
-        plt.savefig('pAngle_interp.png')
+        plt.savefig('fig\pAngle_interp.png')
         plt.show()
         
     def showOmega(self,fps):
@@ -423,7 +414,7 @@ class Dealer:
             else:
                 self.adj.append(0)
         
-        plt.figure()
+        plt.figure('pOmega')
         omega_center = 0
         omega_front = 0
         omega_back = 0
@@ -503,7 +494,7 @@ class Dealer:
         # output_file(filename="res_Angular_speed.html", title="angular speed result")
         # save(self.pOmega)
         # show(self.pOmega)
-        plt.savefig('pOmega.png')
+        plt.savefig('fig\pOmega.png')
         plt.show()
         
     def calc_1(self,i):
@@ -517,11 +508,9 @@ class Dealer:
         return (k2 - k1) / self.fps if k2 != k1 else 0
         
     def showPath(self,):
-        # self.pPath = figure(width=600, height=600)
-        plt.figure()
-        # print('frames',self.frames)
+        plt.figure('pPath')
         print(len(self.frames))
-        flag = 1 if len(self.X1)>0 else 0
+        flag = 1 if len(self.X1) > 0 else 0 # if front and back path can be drawn
         for i,frame in enumerate(self.frames):
             if self.minDis(frame) < 1:
                 print(frame)
@@ -530,29 +519,24 @@ class Dealer:
                 if flag:
                     plt.scatter(self.X1[i], self.Y1[i], c='r')
                     plt.scatter(self.X2[i], self.Y2[i], c='r')
-                # self.pPath.circle(self.X_mid[i][1], self.Y_mid[i][1], fill_color="red", size=8)
-                # self.pPath.circle(self.X1[i], self.Y1[i], fill_color="red", size=8)
-                # self.pPath.circle(self.X2[i], self.Y2[i], fill_color="red", size=8)
                 
         plot_xmid = [i[1] for i in self.X_mid if self.in_range(i[0])]
         plot_ymid = [i[1] for i in self.Y_mid if self.in_range(i[0])]
         plt.plot(plot_xmid, plot_ymid,c='b')
-        # self.pPath.line(plot_xmid, plot_ymid, line_color="blue", line_alpha=0.6, line_width=2)
         if flag:
+            # print(self.stimus)
+            # return
             plot_xf = [self.X1[i] for i in range(self.num) if self.frames[i] in self.stimus[0]]
             plot_yf = [self.Y1[i] for i in range(self.num) if self.frames[i] in self.stimus[0]]
             plot_xb = [self.X2[i] for i in range(self.num) if self.frames[i] in self.stimus[0]]
             plot_yb = [self.Y2[i] for i in range(self.num) if self.frames[i] in self.stimus[0]]
         
             plt.plot(plot_xf,plot_yf,c='green')
-            # self.pPath.line(plot_xf,plot_yf, line_color="green", line_alpha=0.6, line_width=2)
             plt.plot(plot_xb,plot_yb,c='purple')
-            # self.pPath.line(plot_xb,plot_yb, line_color="purple", line_alpha=0.6, line_width=2)
-        # output_file(filename="res_Path.html", title="path result")
-        # save(self.pPath)
-        # show(self.pPath)
+        plt.xlabel(f'x({self.str_scale})')
+        plt.ylabel(f'y({self.str_scale})')
         plt.title('path curve')
-        plt.savefig('pPath.png')
+        plt.savefig('fig\pPath.png')
         plt.show()
         
     def showCurve(self,):
@@ -569,9 +553,9 @@ class Dealer:
                 if d_s > d_thres:
                     cnt2 += 1
                     alpha1 = (atan((self.Y_mid[i+2][1] - self.Y_mid[i+1][1]) / (self.X_mid[i+2][1] - self.X_mid[i+1][1])) 
-                            if abs(self.X_mid[i+2][1] - self.X_mid[i+1][1]) > 0.1 else pi/2)
+                            if abs(self.X_mid[i+2][1] - self.X_mid[i+1][1]) > d_thres else pi/2)
                     alpha2 = (atan((self.Y_mid[i+1][1] - self.Y_mid[i][1]) / (self.X_mid[i+1][1] - self.X_mid[i][1])) 
-                            if abs(self.X_mid[i+1][1] - self.X_mid[i][1]) > 0.1 else pi/2)
+                            if abs(self.X_mid[i+1][1] - self.X_mid[i][1]) > d_thres else pi/2)
                     d_alpha = alpha1 - alpha2
                     if d_alpha > 0.001:
                         cnt3 += 1
@@ -595,7 +579,7 @@ class Dealer:
         with open(f'results\Turning Radius {self.filename},{self.timestr}.txt','w') as f:
             f.write(f'frame_num: radius({self.str_scale})')        
             for i, sti_ls in enumerate(self.stimus):
-                plt.figure(0)
+                plt.figure(f'pRadius-{i}')
                 plt_x = []
                 plt_y = []
                 f.write(f'\nstimulus {i} ({len(sti_ls)} frames):\n')
@@ -615,6 +599,7 @@ class Dealer:
                             pass
                         else:
                             plt.scatter(x,0,c='y')
+                # print(plt_x)
                 plt.plot(plt_x,plt_y,c='b')
                 plt.xlabel('number of frame')
                 plt.ylabel(f'radius({self.str_scale})')
@@ -631,23 +616,20 @@ class Dealer:
         return
         
     def showDist(self):
-        # self.pDist = figure(width=400, height=400)
-        for each in self.D:
-            self.pDist.circle(each[0], each[1], line_color="white", fill_color="blue", fill_alpha=0.5)
-        self.pDist.xaxis.axis_label = "帧序号"
-        self.pDist.yaxis.axis_label = "距离（像素）"
-        # show(self.pDist)
-        
-if __name__ == '__main__':
-    data_dealer = Dealer()
-    data_dealer.deal_time(open('out-light-every.txt','r'), 30)
-    data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
-    # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
-    # data_dealer.showPath()
-    data_dealer.showCurve()
-    # data_dealer.showAngle(30)
-    # data_dealer.showOmega(30)
-    
+        pass
+
+if pstatus == "debug":
+    if __name__ == '__main__':
+        data_dealer = Dealer()
+        data_dealer.deal_time(open('out-light-every.txt','r'), 30)
+        data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
+        # data_dealer.data_change_ratio(2)
+        # data_dealer.To_centimeter(2)
+        # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
+        data_dealer.showPath()
+        # data_dealer.showCurve()
+        # data_dealer.showAngle(30)
+        # data_dealer.showOmega(30)
     
 class Cheker:
     def __init__(self,cap,status) -> None:

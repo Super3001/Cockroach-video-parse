@@ -7,28 +7,47 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 To do List:
 
 - [x] 输出转向角度angle, 
-- [ ] 转向角速度omega_t, 摆动角速度omega_s, 
+- [ ] 转向角速度omega_t, 摆动角速度omega_s,
+- [ ] angle_interp...
 - [x] 转弯半径radius
 - [x] 转向半径单位：米
 - [x] main window size(change)
 - [x] a drag rectangle when selecting a rect
 - [x] result-file-output: 'black'
 - [x] format cv to cv2 for all the files
+- [x] put ResWindow on the front
+- [x] show angle first frame be 0?
+- [x] resolve the error occurred when loading a video
 - [ ] main window size not stable?
 - [ ] sequence of plots
-- [ ] tract point show output to out_eindow
+- [ ] tract point show output to out_window
 - [ ] add cut_edge when tracting points
 - [ ] check if the multiple process is OK
 - [ ] complete feature_detection
-- [x] put ResWindow on the front
-- [x] show angle first frame be 0?
-- [ ] rewrite prompt(select_window)
-- [ ] solve the fliename problem
-- [ ] change to the dynamic threshold for radius
-- [x] resolve the error occurred when loading a video
+- [x] rewrite prompt(select_window)
+- [ ] solve the filename problem
+- [x] change to the dynamic threshold for radius
 - [ ] choice: timestamp should be the time when detecting goes or data_dealing(result_viewing)?
 - [ ] add detecting_mark_str record
-- [ ] refresh property when loading a new video
+- [x] refresh property when loading a new video
+- [ ] regular imports?
+- [x] add "release" and "debug" mode to all files
+- [x] os.makedir
+- [x] regular output file path
+- [x] plt.figure(x) - regular figure name
+- [ ] delete bokeh-format codes
+- [x] put pstatus in front of each file
+- [x] resolve the problem of "can't go plt.show()"
+- [ ] function: load_last_result
+- [x] some problems about px_to_cm result dealing
+- [ ] regular plot: x_label and y_label for each plot
+
+  (xlabel, ylabel, figname, title)
+
+- [ ] some problems about display_window
+
+- [ ] 
+
 
 
 My Log:

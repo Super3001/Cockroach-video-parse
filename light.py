@@ -1,14 +1,16 @@
 import cv2 as cv
 from tract_point import *
 
+# pstatus = "release"
+pstatus = "debug"
+
 def legal(x,y,width,height):
     if x < 0 or x >= width:
         return 0
     if y < 0 or y >= height:
         return 0
     return 1
-    
-        
+       
 def tractLight(cap, master, OutWindow, progressBar, thres=150):
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     # w, h = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
@@ -54,13 +56,14 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150):
         else:
             break
         
-class FakeMs:
-    def __init__(self) -> None:
-        self.cnt = 0
-    
-    def update(self):
-        self.cnt += 1
+if pstatus == "debug":
+    class FakeMs:
+        def __init__(self) -> None:
+            self.cnt = 0
+        
+        def update(self):
+            self.cnt += 1
 
-if __name__ == '__main__':
-    cap = cv.VideoCapture('C:\\Users\\LENOVO\\Desktop\\10Hz,右，样本2 00_00_51-00_01_46.mp4')
-    tractLight(cap, master=FakeMs(),OutWindow=None,progressBar=dict())
+    if __name__ == '__main__':
+        cap = cv.VideoCapture('C:\\Users\\LENOVO\\Desktop\\10Hz,右，样本2 00_00_51-00_01_46.mp4')
+        tractLight(cap, master=FakeMs(),OutWindow=None,progressBar=dict())

@@ -1,1 +1,2 @@
-magRatio
+import matplotlib
+# matplotlib.use('TkAgg'
