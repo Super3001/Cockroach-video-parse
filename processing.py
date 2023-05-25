@@ -419,7 +419,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
     showinfo(message='检测完成！')
     return 'OK'
 
-def middle_point(A,B):
+def midPoint(A,B):
     x1,y1 = A
     x2,y2 = B
     return ((x1+x2)/2 , (y1+y2)/2)
@@ -443,7 +443,7 @@ def Magnify(cap):
     Trc.inputbox('请输入蟑螂的实际长度，单位：厘米')
     body_length = eval(Trc.gbInput)
     # my_show(frame0, 50*body_length/length, middle_point(point_b,point_f))
-    return body_length, length, middle_point(point_b,point_f)
+    return body_length, length, midPoint(point_b,point_f)
 
 def conv2d_res(frame, kernal, pos):
     h,w = kernal.shape

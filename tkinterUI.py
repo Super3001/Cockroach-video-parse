@@ -6,15 +6,32 @@ import cv2 as cv
 from processing import *
 from light import *
 from deal_with_data import *
+import utils
+import sys
+
+# 创建其他窗口并运行
+# ...
 
 # desktop = 'C:\\Users\\LENOVO\\Desktop\\'
 图片 = '.\\src\\'
 
 # 提示信息
 Prompt = "\n1.图像展示过程按q退出\n"
+msg_NoVideo = '请先导入视频'
+
+# 缩放比例 x: cm/px
+View = 50 # 屏幕上50px -> 1cm
+
+# 项目状态
+# pstatus = "release"
+pstatus = "debug"
+
+# 设置全局异常处理程序
+utils.set_exit()
 
 class APP:
     def __init__(self,master) -> None:
+        self.project_status = pstatus
         self.master = master
         self.master.title('蟑螂视频处理程序')
         leftframe = Frame(master,width=40,height=40)
@@ -92,19 +109,28 @@ class APP:
                           font=("等线",15,"bold"),bg='red',fg='white',activebackground='green',command=self.stop_display)
         self.bt9.pack(side=TOP,pady=(0,10))
         self.cap = None
-        # self.status = None
-        self.status = 'meanshift'
-        # self.light = 0
-        self.light = 1
-        self.fps = 60
+        if(self.project_status == 'debug'):
+            self.status = 'meanshift'
+            self.light = 1
+            self.fps = 60
+            self.filename = 'example.mp4'
+            self.magRatio = 0.0308*50
+            self.Ratio_to_cm = 0.0308
+        else:
+            self.status = None
+            self.light = 0
+            self.fps = None
+            self.filename = ''
+            self.magRatio = 0
+            self.Ratio_to_cm = 0
         self.output_window = None
-        self.magRatio = 0
         self.first_middle_point = (-1,-1)
         self.pm = 1
-        self.master.geometry('1200x600+100+100')
+        self.master.geometry('1200x700+50+50')
         
     def quit(self):
-        self.master.destroy()
+        # self.master.destroy()
+        sys.exit(0)
         
     def refresh(self):
         self.progressbar['value'] = 0
@@ -119,14 +145,25 @@ class APP:
         self.fps = int(round(self.cap.get(5)))
         self.nframe = int(self.cap.get(7))
         self.lbconfig['text'] = f'num_frames : {self.nframe}, fps : {self.fps}'
+        # filename: absolute path
+        pos = filename.rfind('\\')
+        self.filename = filename[pos+1:]
         self.master.update()
         
     def go_magnify(self):
+        if self.cap == None:
+            tkinter.messagebox.showinfo(message=msg_NoVideo)
+            return
         self.bodyLength, self.measure, self.first_middle_point = Magnify(self.cap)
-        self.magRatio = 50*self.bodyLength / self.measure
+        self.Ratio_to_cm = self.bodyLength / self.measure
+        self.magRatio = View*self.bodyLength / self.measure
         if self.output_window and self.output_window.display:
             self.output_window.ratio = self.magRatio
+        tkinter.messagebox.showinfo(message=f'{self.bodyLength}cm : {self.measure:.1f}px \n'
+                                    f'or 1 px : {self.Ratio_to_cm:.4f}cm')
+        self.Ratio_to_m = self.magRatio*0.001
         # self.show_first_frame()
+        self.master.geometry('1200x700+50+50')
         
     def stop_magnify(self):
         self.magRatio = 0
@@ -153,7 +190,7 @@ class APP:
             self.output_window = OutputWindow(tier2)
             self.output_window.display = 1
             if self.magRatio > 0:
-                self.output_window.ratio = self.magRatio
+                # self.output_window.ratio = self.magRatio
                 print('ratio:',self.output_window.ratio)
             # tkinter.messagebox.showinfo(message='已打开提取过程展示')
             tier2.mainloop()
@@ -220,7 +257,7 @@ class APP:
         self.refresh()
         
     def view_result(self):
-        data_dealer = Dealer(self.cap,self.master,self.progressbar)
+        data_dealer = Dealer(self.cap,self.filename,self.master,self.progressbar)
         if self.light:
             file_light = open('out-light-every.txt','r')
             data_dealer.deal_time(file_light, self.fps)
@@ -232,21 +269,29 @@ class APP:
             file_f = open('out-color-1.txt','r')
             file_b = open('out-color-2.txt','r')
             data_dealer.parse_fbpoints(file_f,file_b,self.fps)
-        
+            if self.magRatio > 0:
+                data_dealer.data_change_ratio(self.Ratio_to_cm)
+            
         elif self.status == 'meanshift':
             file_f = open('out-meanshift-1.txt','r')
             file_b = open('out-meanshift-2.txt','r')
             data_dealer.parse_fbpoints(file_f,file_b,self.fps)
+            if self.magRatio > 0:
+                data_dealer.data_change_ratio(self.Ratio_to_cm)
             
         elif self.status == 'feature':
             file_f = open('out-feature-1.txt','r')
             file_b = open('out-feature-2.txt','r')
             data_dealer.parse_fbpoints(file_f,file_b,self.fps)
+            if self.magRatio > 0:
+                data_dealer.data_change_ratio(self.Ratio_to_cm)
             
         elif self.status == 'contour':
             file_center = open('out-contour-center.txt','r')
             file_angle = open('out-contour-theta.txt','r')
             data_dealer.parse_center_angle(file_center,file_angle,self.fps)
+            if self.magRatio > 0:
+                data_dealer.data_change_ratio(self.Ratio_to_cm)
             
         else:
             tkinter.messagebox.showinfo(message='请先处理视频')
@@ -317,5 +362,4 @@ class OutputWindow:
 
 root = Tk()
 app = APP(root)
-
 root.mainloop()
