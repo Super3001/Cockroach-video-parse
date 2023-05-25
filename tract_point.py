@@ -1,4 +1,4 @@
-import cv2 as cv
+import cv2
 from tkinter.messagebox import *
 import tkinter as tk
 import sys
@@ -6,9 +6,11 @@ from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit
 from PyQt5.QtGui import QIcon
 import numpy as np
 
-g_rect = (0,)*4
-cut_img = None
-minis = []
+use_global = True
+"""@deprecated global vars"""
+if use_global:
+    g_rect = (0,)*4
+    minis = []
 
 def monitor_show(frame, ratio=0, center_point=(-1,-1), time=0, function=None, container=None):
     # print(center_point)
@@ -22,17 +24,17 @@ def monitor_show(frame, ratio=0, center_point=(-1,-1), time=0, function=None, co
         # print(up,down,left,right)
         frame_cut = frame[up:down,left:right]
         # print('magnified')
-        # cv.imshow("window",frame_cut)
-        cv.imshow("image",cv.resize(frame_cut,(1200,800)))
+        # cv2.imshow("window",frame_cut)
+        cv2.imshow("image",cv2.resize(frame_cut,(1200,800)))
         
     elif ratio > 0 and ratio <= 1:
-        cv.imshow("image",cv.resize(frame,(1200,800)))
+        cv2.imshow("image",cv2.resize(frame,(1200,800)))
         
     else:
-        cv.imshow("image",frame)
+        cv2.imshow("image",frame)
     if function:
-        cv.setMouseCallback("image",function,frame)
-    key = cv.waitKey(time)
+        cv2.setMouseCallback("image",function,frame)
+    key = cv2.waitKey(time)
     if key == ord('q'):
         return 1
     elif key == 13: # ENTER键
@@ -41,43 +43,119 @@ def monitor_show(frame, ratio=0, center_point=(-1,-1), time=0, function=None, co
     else:
         min_x,min_y,width,height = g_rect # (x,y,w,h)
         frame = frame[min_y:min_y + height, min_x:min_x + width]
-        frame = cv.resize(frame,(1200,800))
-        cv.destroyWindow('roi')
+        frame = cv2.resize(frame,(1200,800))
+        cv2.destroyWindow('roi')
         minis.append(g_rect)
         return monitor_show(frame,ratio,center_point,time,function,container)
 
-class Tractor:
-    
+class Tractor: 
     def __init__(self) -> None:
+        """data"""
         self.gbColor = None
         self.gbRect = None
         self.gbPoint = None
         self.gbInput = None
+        """property for calculate"""
         self.mutiple = 1
+        """property for show"""
+        self.cut_edge = 50
         
     def set(self, ord, value):
         if ord == 'mutiple':
             self.mutiple = value 
 
     def drawCircle(self,event,x,y,flags,frame):
-        if event == cv.EVENT_LBUTTONDOWN:
-            # cv.circle(frame, (x,y), 5, (255, 0, 0), -1)
+        if event == cv2.EVENT_LBUTTONDOWN:
+            # cv2.circle(frame, (x,y), 5, (255, 0, 0), -1)
             print(x,y)
             print(frame[y][x])
             
     def pointPos(self,event,x,y,flags,frame):
-        if event == cv.EVENT_LBUTTONDOWN:
-            print(x,y)
+        frame_show = frame.copy()
+        edge = self.cut_edge
+        if event == cv2.EVENT_LBUTTONDOWN:
             self.gbPoint = (x,y)
+            cv2.circle(frame_show,self.gbPoint,2,(0,0,255),2)
+            x1,x2 = max(x-edge,0), min(x+edge,frame.shape[1]-1)
+            y1,y2 = max(y-edge,0), min(y+edge,frame.shape[0]-1)
+            cv2.imshow("Point",frame_show[y1:y2,x1:x2])
+            cv2.moveWindow("Point",x-edge//2,y-edge//2)
+            key = cv2.waitKey(0) & 0xFF
+            if key == 13:
+                print(self.gbPoint)
+                cv2.destroyAllWindows()
+            else:
+                cv2.destroyWindow("Point")
             
+    """@former: pointColor
     def pointColor(self,event,x,y,flags,frame):
-        if event == cv.EVENT_LBUTTONDOWN:
+        if event == cv2.EVENT_LBUTTONDOWN:
             print(x,y)
             # global gbColor
             self.gbColor = frame[y][x]
-            
+    """
+    def pointColor(self,event,x,y,flags,frame):
+        frame_show = frame.copy()
+        if event == cv2.EVENT_LBUTTONDOWN:
+            """debug"""
+            # print(x, y)
+            self.gbColor = frame[y][x]
+            cv2.circle(frame_show,(x,y),2,(0,0,255),2)
+            cv2.imshow("color",frame_show)
+            if cv2.waitKey(0) & 0xFF == 13:
+                cv2.destroyAllWindows()
+            else:
+                cv2.destroyWindow("color")
+    
+    def mouse_rect(self,event,x,y,flags,frame):
+        frame_show = frame.copy()
+        global point1, point2, g_rect, cut_img
+        if event == cv2.EVENT_LBUTTONDOWN:  # 左键点击,则在原图打点
+            # print("1-EVENT_LBUTTONDOWN")
+            point1 = (x, y)
+            cv2.circle(frame_show, point1, 10, (0, 255, 0), 5)
+            cv2.imshow("image", frame_show)
+    
+        elif event == cv2.EVENT_MOUSEMOVE and (flags & cv2.EVENT_FLAG_LBUTTON):  # 按住左键拖曳，画框
+            # print("2-EVENT_FLAG_LBUTTON")
+            cv2.rectangle(frame_show, point1, (x, y), (255, 0, 0), thickness=2)
+            cv2.imshow("image", frame_show)
+    
+        elif event == cv2.EVENT_LBUTTONUP:  # 左键释放，显示
+            # print("3-EVENT_LBUTTONUP")
+            point2 = (x, y)
+            cv2.rectangle(frame_show, point1, point2, (0, 0, 255), thickness=2)
+            cv2.imshow("image", frame_show)
+            if cv2.waitKey(0) & 0xFF == 13:
+                cv2.destroyAllWindows()
+            else:
+                cv2.destroyWindow("image")
+            if point1!=point2:
+                min_x = min(point1[0], point2[0])
+                min_y = min(point1[1], point2[1])
+                width = abs(point1[0] - point2[0])
+                height = abs(point1[1] - point2[1])
+                g_rect=[min_x,min_y,width,height] # (x,y,w,h)
+                cut_img = frame[min_y:min_y + height, min_x:min_x + width]
+                # cv2.imshow('roi',cut_img)
+                # res = askyesno('COnfirm',f'Rect: {point1} : {point2} \nconfirm?')
+                # if res == 1:
+                #     cv2.destroyAllWindows()
+            else:
+                cv2.destroyWindow("image")
+        else:
+            pass
+                
+        """debug"""
+        if event == 10: # cv2.EVENT_MOUSEWHEEL = 10
+            print('pos:', (x, y))
+            print('color:', img[y][x])
+            print('flags:', flags)
+            print(f'gbRect: {self.gbRect}')
+    
+    """@former: mouse_rect
     def firstRect(self,event,x,y,flags,frame):
-        if event == cv.EVENT_LBUTTONDOWN:
+        if event == cv2.EVENT_LBUTTONDOWN:
             print(x,y)
             # global gbRect
             if len(self.gbRect)<=1:
@@ -87,40 +165,54 @@ class Tractor:
                 self.gbRect = []
                 self.gbRect.append(temp)
                 self.gbRect.append((x,y))  
+    """
     
-    def tract_color(self,frame):
-        cv.imshow("windowName",frame)
-        cv.setMouseCallback("windowName", self.pointColor, frame)
-        cv.waitKey(0)
-        cv.destroyAllWindows()
+    """changed"""
+    def tract_color(self, frame):
+        self.gbColor = [0,0,0]
+        cv2.imshow("windowName",frame)
+        cv2.setMouseCallback("windowName", self.pointColor, frame)
+        cv2.waitKey(0)
+        # res = askyesno('Confirm',f'Color: {self.gbColor} \nconfirm?')
+        # if res == 1:
+        #     cv2.destroyAllWindows()
+        print(self.gbColor)
         return self.gbColor
 
-    def select_rect(self,frame):
+    """changed"""
+    def select_rect(self, frame):
         # global gbRect
         self.gbRect = []
-        cv.imshow("windowName",frame)
-        cv.setMouseCallback("windowName", self.firstRect, frame)
-        key = cv.waitKey(0)
-        cv.destroyAllWindows()
+        cv2.imshow("windowName",frame)
+        cv2.setMouseCallback("windowName", self.mouse_rect, frame)
+        key = cv2.waitKey(0)
+        
         if key == ord('q'):
+            cv2.destroyAllWindows()
             return (None,)*4
-        if len(self.gbRect) < 2:
-            showinfo('请提取两个点')
-            return self.select_rect(frame)
+        elif key == 13:
+            cv2.destroyAllWindows()
         
         print(self.mutiple)
-        A,B = self.gbRect
-        x1,y1 = A
-        x2,y2 = B
-        self.gbRect = ((int(x1*self.mutiple), int(y1*self.mutiple)), (int(x2*self.mutiple), int(y2*self.mutiple)))
+        # A,B = self.gbRect
+        """alter order of the pos and deal mutiply"""
+        global point1, point2
+        x1,y1 = point1
+        x2,y2 = point2
+        x_start = min(x1, x2)
+        x_end = max(x1, x2)
+        y_start = min(y1, y2)
+        y_end = max(y1, y2)
+        self.gbRect = ((int(x_start*self.mutiple), int(y_start*self.mutiple)), (int(x_end*self.mutiple), int(y_end*self.mutiple)))
         print(self.gbRect)
-        return self.gbRect[0][1],self.gbRect[1][1]-self.gbRect[0][1],self.gbRect[0][0],self.gbRect[1][0]-self.gbRect[0][0]
+        return self.gbRect[0][1],self.gbRect[1][1]-self.gbRect[0][1],self.gbRect[0][0],self.gbRect[1][0]-self.gbRect[0][0] # y, x, h, w
 
     def tractPoint(self,frame):
-        cv.imshow("windowName",frame)
-        cv.setMouseCallback("windowName", self.pointPos, frame)
-        cv.waitKey(0)
-        cv.destroyAllWindows()
+        self.gbPoint = (0,0)
+        cv2.imshow("windowName",frame)
+        cv2.setMouseCallback("windowName", self.pointPos, frame)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
         print(self.mutiple)
         x,y = self.gbPoint
         self.gbPoint = (x*self.mutiple, y*self.mutiple)
@@ -209,22 +301,22 @@ class Identifier:
     def mouse(self,event,x,y,flags,frame):
         frame_show = frame.copy()
         global point1, point2, g_rect, cut_img
-        if event == cv.EVENT_LBUTTONDOWN:  # 左键点击,则在原图打点
+        if event == cv2.EVENT_LBUTTONDOWN:  # 左键点击,则在原图打点
             print("1-EVENT_LBUTTONDOWN")
             point1 = (x, y)
-            cv.circle(frame_show, point1, 10, (0, 255, 0), 5)
-            cv.imshow("image", frame_show)
+            cv2.circle(frame_show, point1, 10, (0, 255, 0), 5)
+            cv2.imshow("image", frame_show)
     
-        elif event == cv.EVENT_MOUSEMOVE and (flags & cv.EVENT_FLAG_LBUTTON):  # 按住左键拖曳，画框
+        elif event == cv2.EVENT_MOUSEMOVE and (flags & cv2.EVENT_FLAG_LBUTTON):  # 按住左键拖曳，画框
             print("2-EVENT_FLAG_LBUTTON")
-            cv.rectangle(frame_show, point1, (x, y), (255, 0, 0), thickness=2)
-            cv.imshow("image", frame_show)
+            cv2.rectangle(frame_show, point1, (x, y), (255, 0, 0), thickness=2)
+            cv2.imshow("image", frame_show)
     
-        elif event == cv.EVENT_LBUTTONUP:  # 左键释放，显示
+        elif event == cv2.EVENT_LBUTTONUP:  # 左键释放，显示
             print("3-EVENT_LBUTTONUP")
             point2 = (x, y)
-            cv.rectangle(frame_show, point1, point2, (0, 0, 255), thickness=2)
-            cv.imshow("image", frame_show)
+            cv2.rectangle(frame_show, point1, point2, (0, 0, 255), thickness=2)
+            cv2.imshow("image", frame_show)
             if point1!=point2:
                 min_x = min(point1[0], point2[0])
                 min_y = min(point1[1], point2[1])
@@ -232,18 +324,22 @@ class Identifier:
                 height = abs(point1[1] - point2[1])
                 g_rect=[min_x,min_y,width,height] # (x,y,w,h)
                 cut_img = frame[min_y:min_y + height, min_x:min_x + width]
-                cv.imshow('roi',cut_img)
+                cv2.imshow('roi',cut_img)
         else:
             pass
-        
 
-cap = cv.VideoCapture("C:\\Users\\LENOVO\\Desktop\\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
-# 获取第一帧位置，并指定目标位置
-ret, img = cap.read()
-size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
-        int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
-print(size)
+"""debug global property"""
 
-if __name__ == '__main__':
-    Idf = Identifier(img)
-    # Idf.select_window(Idf.frame)
+# pstatus = "release"
+pstatus = "debug"
+
+if pstatus == "debug":
+    cap = cv2.VideoCapture("C:\\Users\\LENOVO\\Videos\\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
+    ret, img = cap.read()
+    size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
+            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+
+    if __name__ == '__main__':
+        # Idf = Identifier(img)
+        Trc = Tractor()
+        Trc.tractPoint(img)

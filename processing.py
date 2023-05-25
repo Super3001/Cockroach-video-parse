@@ -4,16 +4,6 @@ from tract_point import *
 import numpy as np
 import math
 
-# cap = cv.VideoCapture('C:\\Users\\LENOVO\\Desktop\\4.30，左 00_00_04.20-00_00_08_1.mp4')
-
-# success, frame0 = cap.read()
-
-# size = (1920, 1080)
-
-# fps = 60
-
-# background = cv.imread("C:\\Users\\LENOVO\\Desktop\\new photo.jpg")
-
 K_cross = np.array([
     [-4,-4,-4,5,5,5,-4,-4,-4],
     [-4,-4,-4,5,5,5,-4,-4,-4],
@@ -196,7 +186,7 @@ def main_color(cap,root,OutWindow,progressBar):  # 颜色提取
     num = cap.get(7)
     Trc = Tractor()
     
-    showinfo(message='请提取前点颜色，确定按回车')
+    showinfo('','请提取前点颜色，确定按回车')
     midval_f = Trc.tract_color(frame0)
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.delete('0.0','end')
@@ -242,7 +232,7 @@ def main_color(cap,root,OutWindow,progressBar):  # 颜色提取
         cnt += 1
     file.close()
     
-    showinfo(message='请提取后点颜色，确定按回车')
+    showinfo('', '请提取后点颜色，确定按回车')
     midval_b = Trc.tract_color(frame0)    
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.delete('0.0','end')
@@ -722,5 +712,15 @@ class FakeMs:
     def update(self):
         self.cnt += 1
 
-if __name__ == '__main__':
-    feature(cap,'front',root=FakeMs(),OutWindow=None,progressBar=dict())
+"""debug global property"""
+
+# pstatus = "release"
+pstatus = "debug"
+
+if pstatus == "debug":
+    cap = cv2.VideoCapture("C:\\Users\\LENOVO\\Videos\\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
+    ret, frame0 = cap.read()
+    size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
+            int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    if __name__ == '__main__':
+        feature(cap,'front',root=FakeMs(),OutWindow=None,progressBar=dict())

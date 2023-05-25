@@ -58,7 +58,7 @@ def show_der(points, tList):
 
 class Dealer:
     
-    def __init__(self,cap=None,filename=None,root=None,progressBar=None) -> None:
+    def __init__(self,cap=None,filename=None,root=None,progressBar=None,markstr=None) -> None:
         print(cap)
         if cap!=None:
             self.cap = cap
@@ -88,14 +88,18 @@ class Dealer:
         self.frames = [] # frame numbers
         now = datetime.datetime.now()
         self.timestr = now.strftime("%Y-%m-%d-%H-%M-%S")
+        # self.timestr = markstr # keep the interface with accordance
         self.filename = filename
         self.out_ratio = 0
+        self.str_scale = 'px'
 
     def To_centimeter(self, ratio):
         self.out_ratio = ratio
+        self.str_scale = 'cm'
         
     def To_origin(self):
         self.out_ratio = 0
+        self.str_scale = 'px'
         
     """change all scaler of data"""
     def data_change_ratio(self, ratio):
@@ -325,11 +329,6 @@ class Dealer:
         return sti_sections
         
     def showAngle(self,fps):
-        plt.figure(0)      
-        # plt.subplot(121)
-        # self.pAngle = figure(width=400, height=400)
-        # self.pAngle_interp = figure(width=600, height=600)
-        # self.pAngle_bessel = figure(width=600, height=600)
             
         """write file and plot simultaneously"""
         with open(f'results\Angle {self.filename},{self.timestr}.txt','w') as f:
@@ -347,7 +346,7 @@ class Dealer:
                     x = self.frames[pf]
                     theta = self.Theta[pf]
                     if x in self.lighttime:
-                        f.write(f'{x:>3d}: {theta:.6f} (stimulate)\n')
+                        f.write(f'{x:3d}: {theta:.6f} (stimulate)\n')
                         plt.scatter(x,theta,c='y')
                     else:
                         f.write(f'{x:3d}: {theta:.6f}\n')
@@ -357,6 +356,7 @@ class Dealer:
                 plt.xlabel('number of frame')
                 plt.ylabel('angle(deg)')
                 plt.title('angle curve')
+                plt.savefig(f'pAngle-stimulus{i}.png')
                 plt.show()
                     
             # plt.show()
@@ -556,42 +556,79 @@ class Dealer:
         plt.show()
         
     def showCurve(self,):
-        # self.pCurve = figure(width=600, height=600)
-        plt.figure()
+        self.radius = []
         max_r = 0
+        cnt1 = 0
+        cnt2 = 0
+        cnt3 = 0
         for i in range(len(self.X_mid) - 2):
             if self.X_mid[i+2][0]-self.X_mid[i+1][0] == 1 and self.X_mid[i+1][0]-self.X_mid[i][0] == 1: # 连续三点
+                cnt1 += 1
                 d_s = sqrt((self.Y_mid[i+1][1]-self.Y_mid[i][1])**2 +(self.X_mid[i+1][1]-self.X_mid[i][1])**2)
-                if d_s > 0.01:
+                d_thres = 0.001*self.out_ratio if self.out_ratio > 0 else 0.001
+                if d_s > d_thres:
+                    cnt2 += 1
                     alpha1 = (atan((self.Y_mid[i+2][1] - self.Y_mid[i+1][1]) / (self.X_mid[i+2][1] - self.X_mid[i+1][1])) 
                             if abs(self.X_mid[i+2][1] - self.X_mid[i+1][1]) > 0.1 else pi/2)
                     alpha2 = (atan((self.Y_mid[i+1][1] - self.Y_mid[i][1]) / (self.X_mid[i+1][1] - self.X_mid[i][1])) 
                             if abs(self.X_mid[i+1][1] - self.X_mid[i][1]) > 0.1 else pi/2)
                     d_alpha = alpha1 - alpha2
                     if d_alpha > 0.001:
+                        cnt3 += 1
                         r = d_s / d_alpha
                         """changed: withdrew;"""
                         # if self.out_ratio:
                         #     r = r*self.out_ratio
-                        if self.minDis(self.X_mid[i][0]) < 3:
-                            plt.scatter(self.X_mid[i][0], r, c='r')
-                            # self.pCurve.circle(self.X_mid[i][0], r, line_color="white", fill_color="red", fill_alpha=1, size=10)
-                        else:
-                            plt.scatter(self.X_mid[i][0], r, c='b')
-                            # self.pCurve.circle(self.X_mid[i][0], r, line_color="white", fill_color="blue", fill_alpha=1, size=10)
+                        self.radius.append(r)
                         if r > max_r:
                             max_r = r
                     else:
-                        pass
+                        self.radius.append(0)
                 else:
-                    pass
-        self.segment(0,max_r)
-        # output_file(filename="res_Curvature.html", title="radius of curvature result")
-        # save(self.pCurve)
-        # show(self.pCurve)
-        plt.title('turning radius')
-        plt.savefig('pCurve.png')
-        plt.show()
+                    self.radius.append(0)
+            else: # these three situation we can't calculate the radius, default 0
+                self.radius.append(0)
+        assert len(self.radius) == self.num - 2, ValueError("Wrong Value")
+        print('filter:',self.num, cnt1, cnt2, cnt3)
+                
+        """write file and plot simultaneously"""
+        with open(f'results\Turning Radius {self.filename},{self.timestr}.txt','w') as f:
+            f.write(f'frame_num: radius({self.str_scale})')        
+            for i, sti_ls in enumerate(self.stimus):
+                plt.figure(0)
+                plt_x = []
+                plt_y = []
+                f.write(f'\nstimulus {i} ({len(sti_ls)} frames):\n')
+                for pf in sti_ls:
+                    x = self.frames[pf]
+                    r = self.radius[pf]
+                    if x in self.lighttime:
+                        f.write(f'{x:3d}: {r:.6f} (stimulate)\n')
+                        plt.scatter(x,r,c='r')
+                    else:
+                        f.write(f'{x:3d}: {r:.6f}\n')
+                    if r > 0:
+                        plt_x.append(x)
+                        plt_y.append(r)
+                    else:
+                        if x in self.lighttime:
+                            pass
+                        else:
+                            plt.scatter(x,0,c='y')
+                plt.plot(plt_x,plt_y,c='b')
+                plt.xlabel('number of frame')
+                plt.ylabel(f'radius({self.str_scale})')
+                plt.title('turning radius')
+                plt.savefig(f'fig\pRadius-stimulus{i}.png')
+                plt.show()
+                    
+            f.write('end\n\nall frames: \n')
+            for i in range(self.num - 2):
+                if i > 1 and self.frames[i] - self.frames[i-1] > 1:
+                    f.write(black_sign+'\n')
+                f.write(f'{self.frames[i]:3d}: {self.radius[i]:.6f}\n')
+            f.write('end\n')
+        return
         
     def showDist(self):
         # self.pDist = figure(width=400, height=400)
@@ -604,12 +641,11 @@ class Dealer:
 if __name__ == '__main__':
     data_dealer = Dealer()
     data_dealer.deal_time(open('out-light-every.txt','r'), 30)
-    # data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
-    data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
+    data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
+    # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
     # data_dealer.showPath()
-    # data_dealer.showCurve()
-    data_dealer.showAngle(30)
-    # data_dealer.showOmega(30)
+    data_dealer.showCurve()
+    # data_dealer.showAngle(30)
     # data_dealer.showOmega(30)
     
     
@@ -627,4 +663,3 @@ class Cheker:
         else:
             dealer.showDist()
             
-    

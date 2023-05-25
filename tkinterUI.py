@@ -27,7 +27,7 @@ View = 50 # 屏幕上50px -> 1cm
 pstatus = "debug"
 
 # 设置全局异常处理程序
-utils.set_exit()
+# utils.set_exit()
 
 class APP:
     def __init__(self,master) -> None:
@@ -116,6 +116,8 @@ class APP:
             self.filename = 'example.mp4'
             self.magRatio = 0.0308*50
             self.Ratio_to_cm = 0.0308
+            self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            self.detect_mark_str = f'{self.status}-{self.timestr}'
         else:
             self.status = None
             self.light = 0
@@ -123,6 +125,8 @@ class APP:
             self.filename = ''
             self.magRatio = 0
             self.Ratio_to_cm = 0
+            self.timestr = None
+            self.detect_mark_str = None
         self.output_window = None
         self.first_middle_point = (-1,-1)
         self.pm = 1
@@ -138,6 +142,8 @@ class APP:
         
     def load_video(self):
         filename = filedialog.askopenfilename(defaultextension='.mp4')
+        if not filename: # 打开文件失败
+            return
         # tkinter.messagebox.showinfo(message=filename)
         self.cap = cv.VideoCapture(filename)
         if self.cap == None:
@@ -146,8 +152,10 @@ class APP:
         self.nframe = int(self.cap.get(7))
         self.lbconfig['text'] = f'num_frames : {self.nframe}, fps : {self.fps}'
         # filename: absolute path
-        pos = filename.rfind('\\')
-        self.filename = filename[pos+1:]
+        pos = filename.rfind('/')
+        self.filename = 'video'
+        self.light = 0
+        self.status = None
         self.master.update()
         
     def go_magnify(self):
@@ -212,18 +220,22 @@ class APP:
         main_color(self.cap,self.master,self.output_window,self.progressbar)
         self.refresh()
         self.status = 'color'
+        self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def go_meanshift(self):
         if self.cap==None :
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
-        tkinter.messagebox.showinfo(message='追踪前点，请点击左上角和右下角，然后回车')
+        tkinter.messagebox.showinfo(message='追踪前点，请拖动选择矩形框，然后回车')
         meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm)
         self.refresh()
-        tkinter.messagebox.showinfo(message='追踪后点，请点击左上角和右下角，然后回车')
+        tkinter.messagebox.showinfo(message='追踪后点，请拖动选择矩形框，然后回车')
         meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm)
         self.refresh()
         self.status = 'meanshift'
+        self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def go_contour(self):
         if self.cap==None :
@@ -234,6 +246,8 @@ class APP:
         self.backgroundImg = cv.imread(filename)
         contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar)
         self.status = 'contour'
+        self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def go_feature(self):
         if self.cap==None :
@@ -245,6 +259,8 @@ class APP:
         feature(self.cap,kind='back',featureType='cross',OutWindow=self.output_window)
         
         self.status = 'feature'
+        self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def tract_light(self):
         if self.cap==None :
@@ -257,7 +273,7 @@ class APP:
         self.refresh()
         
     def view_result(self):
-        data_dealer = Dealer(self.cap,self.filename,self.master,self.progressbar)
+        data_dealer = Dealer(self.cap,self.filename,self.master,self.progressbar,self.detect_mark_str)
         if self.light:
             file_light = open('out-light-every.txt','r')
             data_dealer.deal_time(file_light, self.fps)
@@ -309,7 +325,7 @@ class APP:
 class ResWindow:
     def __init__(self,master,dealer) -> None:
         self.dealer = dealer
-        
+        self.master = master
         
         master.title('结果查看页面')
         master.geometry('400x200+600+400')
@@ -331,16 +347,18 @@ class ResWindow:
     def show_angle(self):
         self.show()
         self.dealer.showAngle(self.dealer.fps)
-        
+        self.master.lift()   
         
     def show_path(self):
         self.show()
         self.dealer.showPath()
         self.dealer.showCurve()
+        self.master.lift()
         
     def show_move(self):
         self.show()
         self.dealer.showOmega(self.dealer.fps)
+        self.master.lift()
         
 class OutputWindow:
     def __init__(self,master) -> None:
