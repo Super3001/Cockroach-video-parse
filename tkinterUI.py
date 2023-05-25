@@ -308,7 +308,7 @@ class APP:
 
         if self.magRatio > 0:
             data_dealer.data_change_ratio(self.Ratio_to_cm)
-            data_dealer.To_centimeter()
+            data_dealer.To_centimeter(self.Ratio_to_cm)
         dirs = ["results", # output_txt_directory
                 "fig"] # output_png_directory
         for directory_name in dirs:

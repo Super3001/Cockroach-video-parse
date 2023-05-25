@@ -353,7 +353,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                     x, y, w, h = track_window
                     img2 = cv.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
                     
-                    if my_show(img2,OutWindow.ratio,middle_point((x, y), (x + w, y + h)), 60):
+                    if my_show(img2,OutWindow.ratio,midPoint((x, y), (x + w, y + h)), 60):
                         break
 
                 else:
@@ -395,7 +395,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                     x, y, w, h = track_window
                     img2 = cv.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
                     
-                    if my_show(img2,OutWindow.ratio,middle_point((x, y), (x + w, y + h)), 60):
+                    if my_show(img2,OutWindow.ratio,midPoint((x, y), (x + w, y + h)), 60):
                         break
                 else:
                     pass
@@ -434,7 +434,7 @@ def Magnify(cap):
     length = dist(point_f, point_b)
     Trc.inputbox('请输入蟑螂的实际长度，单位：厘米')
     body_length = eval(Trc.gbInput)
-    # my_show(frame0, 50*body_length/length, middle_point(point_b,point_f))
+    # my_show(frame0, 50*body_length/length, midPoint(point_b,point_f))
     return body_length, length, midPoint(point_b,point_f)
 
 def conv2d_res(frame, kernal, pos):
@@ -719,5 +719,24 @@ if pstatus == "debug":
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    from tkinter import *
+    Prompt = "this is a debug trial "
+    class OutputWindow:
+        def __init__(self,master) -> None:
+            self.master = master
+            master.title('过程显示页面')
+            master.geometry('500x400+600+400')
+            lable_board = Label(master,text = "Output Board",font=('Bodoni MT',30))
+            lable_board.place(x = 100, y = 10)
+            self.textboxprocess = Text(master)
+            self.textboxprocess.place(x=10,y=80,width=500,height=300)
+            self.textboxprocess.insert("insert","will be shown here\n")
+            self.textboxprocess.insert("insert","\n提示信息\n" + Prompt)
+            
+            self.display = 0
+            self.ratio = 0
+            
+        def close(self):
+            self.master.destroy()
     if __name__ == '__main__':
-        feature(cap,'front',root=FakeMs(),OutWindow=None,progressBar=dict())
+        meanshift(cap,'front',root=FakeMs(),OutWindow=None,progressBar=dict())
