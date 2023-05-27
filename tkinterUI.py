@@ -131,6 +131,7 @@ class APP:
         self.first_middle_point = (-1,-1)
         self.pm = 1
         self.master.geometry('1200x700+50+50')
+        self.tier2 = None
         
     def quit(self):
         # self.master.destroy()
@@ -192,19 +193,25 @@ class APP:
             self.pm = 1
         pass
         
+    def on_closing(self):
+        self.output_window.display = 0
+        self.output_window.close()
+        
     def go_display(self):
-        if self.output_window == None or self.output_window.display == 0: 
-            tier2 = Tk()
-            self.output_window = OutputWindow(tier2)
+        try:
+            self.output_window.master.lift()
+        except:
+            self.tier2 = Tk()
+            # tier2.protocol("WM_DELETE_WINDOW", self.on_closing)
+            self.output_window = OutputWindow(self.tier2)
             self.output_window.display = 1
             if self.magRatio > 0:
                 # self.output_window.ratio = self.magRatio
-                print('ratio:',self.output_window.ratio)
+                self.output_window.textboxprocess.insert('0.0','ratio: '+str(self.output_window.ratio)+'\n')
             # tkinter.messagebox.showinfo(message='已打开提取过程展示')
-            tier2.mainloop()
-        else:
-            # tkinter.messagebox.showinfo(message='已打开提取过程展示')
-            pass
+            self.output_window.startTime = datetime.datetime.now().strftime('%H:%M:%S')
+            print(self.output_window.startTime)
+            self.tier2.mainloop()
         
     def stop_display(self):
         if self.output_window != None and self.output_window.display != 0 and self.output_window.master.winfo_exists(): 
@@ -228,10 +235,20 @@ class APP:
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
         tkinter.messagebox.showinfo(message='追踪前点，请拖动选择矩形框，然后回车')
-        meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm)
+        flag = meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm)
+        if self.output_window and self.output_window.display:
+            if flag == 'stop':
+                self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
+            else:
+                self.output_window.textboxprocess.insert('0.0','前点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
         tkinter.messagebox.showinfo(message='追踪后点，请拖动选择矩形框，然后回车')
-        meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm)
+        flag = meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm)
+        if self.output_window and self.output_window.display:
+            if flag == 'stop':
+                self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
+            else:
+                self.output_window.textboxprocess.insert('0.0','后点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
         self.status = 'meanshift'
         self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -364,21 +381,30 @@ class ResWindow:
 class OutputWindow:
     def __init__(self,master) -> None:
         self.master = master
+        
         master.title('过程显示页面')
         master.geometry('500x400+600+400')
         lable_board = Label(master,text = "Output Board",font=('Bodoni MT',30))
         lable_board.place(x = 100, y = 10)
         self.textboxprocess = Text(master)
         self.textboxprocess.place(x=10,y=80,width=500,height=300)
-        self.textboxprocess.insert("insert","will be shown here\n")
+        # self.textboxprocess.insert("insert","will be shown here\n")
         self.textboxprocess.insert("insert","\n提示信息\n" + Prompt)
-        
+        self.startTime = ''
         self.display = 0
         self.ratio = 0
         
     def close(self):
         self.master.destroy()
 
+    def lift(self):
+        self.master.lift()
+        
+    def WindowsLift(self):
+        pid = utils.get_pid(self.startTime)
+        utils.upLift(pid)
+        
+        
 root = Tk()
 app = APP(root)
 root.mainloop()

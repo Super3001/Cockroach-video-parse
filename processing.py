@@ -323,6 +323,8 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
     
     if kind == 'front':
         if OutWindow and OutWindow.display:
+            OutWindow.lift()
+            # OutWindow.WindowsLift()
             OutWindow.textboxprocess.delete('0.0','end')
             OutWindow.textboxprocess.insert('0.0',"帧序号：[中心点坐标]\n")
         else:
@@ -354,7 +356,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                     img2 = cv.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
                     
                     if my_show(img2,OutWindow.ratio,midPoint((x, y), (x + w, y + h)), 60):
-                        break
+                        return 'stop'
 
                 else:
                     pass
@@ -365,6 +367,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                 break
     else:
         if OutWindow and OutWindow.display:
+            OutWindow.lift()
             OutWindow.textboxprocess.delete('0.0','end')
             OutWindow.textboxprocess.insert('0.0',"闪光帧序号：\n")
         else:
@@ -396,7 +399,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                     img2 = cv.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
                     
                     if my_show(img2,OutWindow.ratio,midPoint((x, y), (x + w, y + h)), 60):
-                        break
+                        return 'stop'
                 else:
                     pass
                 
@@ -406,7 +409,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                 break
     cv.destroyAllWindows()
     if OutWindow and OutWindow.display:
-        return 'stop'
+        return 'OK'
     file.close()
     showinfo(message='检测完成！')
     return 'OK'
@@ -493,6 +496,7 @@ def edge(frame):
     res = cv.addWeighted(absX, 0.5, absY, 0.5, 0)
     return res
 
+"""
 def contour(frame):  # 利用内置方法找到轮廓
     res = frame.copy()
     frame = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
@@ -505,6 +509,7 @@ def contour(frame):  # 利用内置方法找到轮廓
     cv.drawContours(res, contour,-1,(0,255,0),2)
     my_show(res)
     return res
+"""
 
 def get_frame(number):
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
@@ -603,8 +608,8 @@ def tilt(edge, display):
     if display:
         edge_show0 = edge.copy()
         edge_show0 = cv.rectangle(edge_show0, (rect0[2],rect0[0]), (rect0[3],rect0[1]), 255, 2)
-        my_show(edge_show0)
-        
+        if my_show(edge_show0):
+            return (None,) * 3
     # 用处理后的线性回归方法做角度计算
     points = count_points(edge,55)
     if len(points) < 10: # 采集到的点太少
@@ -627,7 +632,8 @@ def tilt(edge, display):
         print('angle:',angle)
         edge_show1 = cv.circle(edge_show1,(rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
         edge_show1 = cv.circle(edge_show1,(rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
-        my_show(edge_show1)
+        if my_show(edge_show1):
+            return (None,) * 3
     return rect, angle, len(points)
 
 def contour(cap,background,root,OutWindow,progressBar, turn_start=0,turn_end=0): # 根据外轮廓算角度
@@ -649,9 +655,11 @@ def contour(cap,background,root,OutWindow,progressBar, turn_start=0,turn_end=0):
     # cha = cv.inRange(cha,120,255)
     if OutWindow and OutWindow.display:
         if my_show(cha):
-            return
+            return 'stop'
     # harris(cha,dcut(frame0,domain))
     rect, angle, num = tilt(cha, OutWindow and OutWindow.display)
+    if not rect:
+        return 'stop'
     border = 40
     if num < 10:
         domain = (0, frame0.shape[0], 0, frame0.shape[1])
@@ -679,33 +687,42 @@ def contour(cap,background,root,OutWindow,progressBar, turn_start=0,turn_end=0):
         cha = cv.subtract(edge(dcut(frame,domain)),edge(dcut(background,domain)))
         cnt+=1
         if OutWindow and OutWindow.display:
-            print(cnt,':')
+            OutWindow.textboxprocess.insert('0.0', f'{cnt}:\n')
         if cnt < turn_start:
             continue
         if turn_end > 0 and cnt > turn_end:
             break
         
-        rect, angle, num = tilt(cha, 0)
-        
+        rect, angle, num = tilt(cha, OutWindow and OutWindow.display)
+        if not rect:
+            return 'stop'
+
         if num < 10:
             domain = (0, frame0.shape[0], 0, frame0.shape[1])
-            file_center.write('0, 0\n')
-            file_theta.write('0\n')
+            if OutWindow and OutWindow.display:
+                OutWindow.textboxprocess.insert('0.0', f'(0, 0)  0\n')
+            else:
+                file_center.write('0, 0\n')
+                file_theta.write('0\n')
             continue
         domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
         if domain[0] < 0:
             domain[0] = 0
         if domain[2] < 0:
             domain[2] = 0
-
-        file_theta.write(str(round(angle,2))+'\n')
-        file_center.write(print_mid_point(domain)+'\n')
+        if OutWindow and OutWindow.display:
+            OutWindow.textboxprocess.insert('0.0', f'({print_mid_point(domain)})  {round(angle,2)}\n')
+        else:
+            file_theta.write(str(round(angle,2))+'\n')
+            file_center.write(print_mid_point(domain)+'\n')
         
-    file_center.close()
-    file_theta.close()
-        
-    showinfo(message='检测完成！')
-    pass
+    if OutWindow and OutWindow.display:
+        OutWindow.textboxprocess.insert('检测完成，展示模式不修改数据\n')
+    else:
+        file_center.close()
+        file_theta.close()
+        showinfo(message='检测完成!')
+    return 'OK'
 
 class FakeMs:
     def __init__(self) -> None:

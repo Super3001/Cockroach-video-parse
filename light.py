@@ -28,6 +28,7 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150):
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.delete('0.0','end')
         OutWindow.textboxprocess.insert('0.0',"闪光帧序号：\n")
+        OutWindow.master.lift()
     cnt = 0
     progressBar['maximum'] = num
     while True:

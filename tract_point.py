@@ -130,7 +130,8 @@ class Tractor:
             point2 = (x, y)
             cv2.rectangle(frame_show, point1, point2, (0, 0, 255), thickness=2)
             cv2.imshow("image", frame_show)
-            if cv2.waitKey(0) & 0xFF == 13:
+            key = cv2.waitKey(0) & 0xFF
+            if key == 13:
                 cv2.destroyAllWindows()
             else:
                 cv2.destroyWindow("image")

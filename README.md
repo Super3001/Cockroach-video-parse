@@ -46,7 +46,12 @@ To do List:
 
 - [ ] some problems about display_window
 
-- [ ] 
+- [ ] put dispWindow to the top when detecting
+- [ ] add prompt: 提取过程中止
+- [ ] WindowsLift
+- [ ] a pause button ({space})
+- [ ] outWindow open and close
+- [ ] contour-detection my_show close error
 
 
 
