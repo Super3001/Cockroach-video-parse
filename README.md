@@ -47,13 +47,19 @@ To do List:
 - [ ] some problems about display_window
 
 - [ ] put dispWindow to the top when detecting
-- [ ] add prompt: 提取过程中止
+- [x] add prompt: 提取过程中止
 - [ ] WindowsLift
 - [ ] a pause button ({space})
 - [ ] outWindow open and close
 - [ ] contour-detection my_show close error
+- [x] central-control mode ["release","debug"]
+- [ ] Dynamic window size
+- [ ] update display_window
 
 
 
 My Log:
+
 5.25 afternoon update radius result output(file:deal_with_data.py) and not push yet and delete file...
+
+5.29 I wonder why the scale of window changed (as former 1200x700 now 1600x850 to the same size)

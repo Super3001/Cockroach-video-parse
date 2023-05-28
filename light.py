@@ -1,8 +1,6 @@
 import cv2 as cv
 from tract_point import *
-
-# pstatus = "release"
-pstatus = "debug"
+from control import pstatus
 
 def legal(x,y,width,height):
     if x < 0 or x >= width:

@@ -4,8 +4,11 @@ import traceback
 import psutil
 from pywinauto.application import Application
 import time
-# pstate = "release"
-pstate = "debug"
+
+"""debug global property"""
+from control import pstatus
+# pstatus = "release"
+# pstatus = "debug"
 
 """设置全局错误处理"""
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -16,7 +19,7 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     
 def set_exit():
     
-    if pstate == "debug":
+    if pstatus == "debug":
         sys.excepthook = handle_exception
         
 def secdiff(t1: time.struct_time, t2: time.struct_time):

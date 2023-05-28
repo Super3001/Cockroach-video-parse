@@ -8,11 +8,14 @@ from light import *
 from deal_with_data import *
 import utils
 import sys, os
+import control
 
 # 项目状态
-# pstatus = "release"
-pstatus = "debug"
+pstatus = control.pstatus
 
+if pstatus == "debug":
+    import PySimpleGUI as sg
+    # sg.preview_all_look_and_feel_themes()
 # 创建其他窗口并运行
 # ...
 
@@ -25,6 +28,8 @@ msg_NoVideo = '请先导入视频'
 
 # 缩放比例 x: cm/px
 View = 50 # 屏幕上50px -> 1cm
+# 窗口大小
+str_geometryProperty = '1600x850+50+50'
 
 # 设置全局异常处理程序
 # utils.set_exit()
@@ -65,8 +70,9 @@ class APP:
         self.nframe = '-'
         self.lbconfig = Label(middleframe, text=f'num_frames : {self.nframe}, fps : {self.fps}', pady=5, font=('Times New Roman',15))
         self.lbconfig.pack(side=TOP)
-        self.lbp1 = Label(middleframe,image=self.lb1_photo)
-        self.lbp1.pack(side=TOP,padx=10,pady=20)
+        # temporary
+        # self.lbp1 = Label(middleframe,image=self.lb1_photo)
+        # self.lbp1.pack(side=TOP,padx=10,pady=20)
         self.bt8 = Button(middleframe, text='视频缩放',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_magnify)
         self.bt8.pack(side=TOP,pady=0)
         self.bt9 = Button(middleframe, text='取消缩放',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.stop_magnify)
@@ -130,7 +136,7 @@ class APP:
         self.output_window = None
         self.first_middle_point = (-1,-1)
         self.pm = 1
-        self.master.geometry('1200x700+50+50')
+        self.master.geometry('1200x700+50+50') # 失效？
         self.tier2 = None
         
     def quit(self):
@@ -217,7 +223,7 @@ class APP:
         if self.output_window != None and self.output_window.display != 0 and self.output_window.master.winfo_exists(): 
             self.output_window.close()
             self.output_window.display = 0
-            self.master.geometry('1200x600+100+100')
+            self.master.geometry(str_geometryProperty)
         # tkinter.messagebox.showinfo(message='已关闭提取过程展示')
         
     def go_color(self):
@@ -383,11 +389,12 @@ class OutputWindow:
         self.master = master
         
         master.title('过程显示页面')
-        master.geometry('500x400+600+400')
-        lable_board = Label(master,text = "Output Board",font=('Bodoni MT',30))
-        lable_board.place(x = 100, y = 10)
+        master.geometry('720x600+500+300')
+        lable_board = Label(master,text = "Output Board",font=('Bodoni MT',30),
+                            anchor="center")
+        lable_board.place(x = 10, y = 10)
         self.textboxprocess = Text(master)
-        self.textboxprocess.place(x=10,y=80,width=500,height=300)
+        self.textboxprocess.place(x=10,y=80,width=700,height=500)
         # self.textboxprocess.insert("insert","will be shown here\n")
         self.textboxprocess.insert("insert","\n提示信息\n" + Prompt)
         self.startTime = ''
@@ -404,7 +411,11 @@ class OutputWindow:
         pid = utils.get_pid(self.startTime)
         utils.upLift(pid)
         
-        
-root = Tk()
-app = APP(root)
-root.mainloop()
+def main():   
+    root = Tk()
+    app = APP(root)
+    root.geometry(str_geometryProperty)
+    root.mainloop()
+    
+if __name__ == '__main__':
+    main()

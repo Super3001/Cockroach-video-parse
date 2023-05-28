@@ -8,8 +8,10 @@ import utils
 import matplotlib
 matplotlib.use('TkAgg')
 
+"""debug global property"""
+from control import pstatus
 # pstatus = "release"
-pstatus = "debug"
+# pstatus = "debug"
 
 # global exception exit
 utils.set_exit()

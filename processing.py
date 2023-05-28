@@ -4,8 +4,9 @@ import numpy as np
 import math
 
 """debug global property"""
+from control import pstatus
 # pstatus == "release"
-pstatus == "debug"
+# pstatus == "debug"
 
 K_cross = np.array([
     [-4,-4,-4,5,5,5,-4,-4,-4],

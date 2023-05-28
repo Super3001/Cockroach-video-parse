@@ -2,6 +2,7 @@
 import tkinter as tk
 import sys
 
+"""
 root = tk.Tk()
 root.geometry("200x200")
 
@@ -35,5 +36,47 @@ button.pack(pady=10)
 
 bt0 = tk.Button(root, text="close", command=shutdown)
 bt0.pack(pady=10)
+
+root.mainloop()
+
+
+import tkinter as tk
+
+root = tk.Tk()
+
+frame = tk.Frame(root)
+frame.pack(padx = 10, pady = 10, fill="both", expand=True)
+frame.propagate(False)
+
+text = tk.Text(frame, font=("Arial", 12))
+text.pack(fill="both", expand=True)
+
+root.mainloop()
+"""
+import tkinter as tk
+
+root = tk.Tk()
+root.geometry("700x500")
+
+# 创建标题
+title = tk.Label(root, text="My Text Editor", font=("Arial", 20))
+title.pack(pady=10)
+
+# 创建可滚动的Text组件
+canvas = tk.Canvas(root, bg="white", highlightthickness=0)
+frame = tk.Frame(canvas, bg="white")
+scrollbar = tk.Scrollbar(root, orient="vertical", command=canvas.yview)
+canvas.configure(yscrollcommand=scrollbar.set)
+
+frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+canvas.create_window((0, 0), window=frame, anchor="nw")
+
+text = tk.Text(frame, font=("Arial", 12))
+text.pack(fill="both", expand=True, padx=10)
+
+# 将组件放置在窗口中
+canvas.pack(side="left", fill="both", expand=True)
+scrollbar.pack(side="right", fill="y")
+title.pack(side="top")
 
 root.mainloop()

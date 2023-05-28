@@ -7,8 +7,9 @@ from PyQt5.QtGui import QIcon
 import numpy as np
 
 """debug global property"""
+from control import pstatus
 # pstatus = "release"
-pstatus = "debug"
+# pstatus = "debug"
 
 use_global = True
 """@deprecated global vars"""
