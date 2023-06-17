@@ -14,7 +14,8 @@ import control
 pstatus = control.pstatus
 
 if pstatus == "debug":
-    import PySimpleGUI as sg
+    pass
+    # import PySimpleGUI as sg
     # sg.preview_all_look_and_feel_themes()
 # 创建其他窗口并运行
 # ...
@@ -92,6 +93,8 @@ class APP:
         self.progressbar['value'] = 0
         self.bt10 = Button(middleframe, text='展示第一帧',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.show_first_frame)
         self.bt10.pack(side=TOP,pady=0)
+        self.bt11 = Button(middleframe, text='frame skip',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.set_skip)
+        self.bt11.pack(side=TOP,pady=0)
         self.bt2 = Button(rightframe,width=15,height=1,text='meanshift',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_meanshift)
         self.bt2.pack(side=TOP,pady=10)
@@ -138,6 +141,7 @@ class APP:
         self.pm = 1
         self.master.geometry('1200x700+50+50') # 失效？
         self.tier2 = None
+        self.skip_num = 1
         
     def quit(self):
         # self.master.destroy()
@@ -231,7 +235,7 @@ class APP:
         if self.cap==None :
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
-        main_color(self.cap,self.master,self.output_window,self.progressbar)
+        main_color(self.cap,self.master,self.output_window,self.progressbar,self.pm,self.skip_num)
         self.refresh()
         self.status = 'color'
         self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -242,7 +246,7 @@ class APP:
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
         tkinter.messagebox.showinfo(message='追踪前点，请拖动选择矩形框，然后回车')
-        flag = meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm)
+        flag = meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm,self.skip_num)
         if self.output_window and self.output_window.display:
             if flag == 'stop':
                 self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
@@ -250,7 +254,7 @@ class APP:
                 self.output_window.textboxprocess.insert('0.0','前点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
         tkinter.messagebox.showinfo(message='追踪后点，请拖动选择矩形框，然后回车')
-        flag = meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm)
+        flag = meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm,self.skip_num)
         if self.output_window and self.output_window.display:
             if flag == 'stop':
                 self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
@@ -268,7 +272,7 @@ class APP:
         tkinter.messagebox.showinfo(message='请导入背景图')
         filename = filedialog.askopenfilename(defaultextension='.jpg')
         self.backgroundImg = cv.imread(filename)
-        contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar)
+        contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar,self.skip_num)
         self.status = 'contour'
         self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         self.detect_mark_str = f'{self.status}-{self.timestr}'
@@ -278,9 +282,9 @@ class APP:
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
         tkinter.messagebox.showinfo(message='追踪前点')
-        feature(self.cap,kind='front',featureType='cross',OutWindow=self.output_window)
+        feature(self.cap,kind='front',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master, skip_n=self.skip_num)
         tkinter.messagebox.showinfo(message='追踪后点')
-        feature(self.cap,kind='back',featureType='cross',OutWindow=self.output_window)
+        feature(self.cap,kind='back',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master,skip_n=self.skip_num)
         
         self.status = 'feature'
         self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -343,9 +347,32 @@ class APP:
         result_window = ResWindow(tier1,data_dealer)
         tier1.mainloop()
         
+    def set_skip(self):
+        self.dialog = tk.Toplevel(self.master)
+        self.dialog.geometry("+600+300")
+        self.dialog.title("输入框")
+        self.dialog.resizable(False, False)
+        tk.Label(self.dialog, text="请输入每（）帧记录一次：").pack(pady=10)
+        self.entry_top = tk.Entry(self.dialog, width=20, font=("Consolas", 15))
+        self.entry_top.pack(pady=10)
+        tk.Button(self.dialog, text="确认", command=self.get_top_input).pack(pady=10)
+
+    def get_top_input(self):
+        input_text = self.entry_top.get()
+        # print("输入的内容是：", input_text)
+        try:
+            self.skip_num = int(input_text)
+        except:
+            showinfo(message='请输入整数')
+        else:
+            showinfo(message='成功设置跳帧读取')
+        finally:
+            self.dialog.destroy()
+
     def go_help(self):
         # 放一个演示视频
         pass
+
     
 class ResWindow:
     def __init__(self,master,dealer) -> None:

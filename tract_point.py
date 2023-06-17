@@ -43,7 +43,7 @@ def monitor_show(frame, ratio=0, center_point=(-1,-1), time=0, function=None, co
     if key == ord('q'):
         return 1
     elif key == 13: # ENTER键
-        container.square = g_rect
+        cv2.destroyAllWindows()
         return 0
     else:
         min_x,min_y,width,height = g_rect # (x,y,w,h)
@@ -80,10 +80,10 @@ class Tractor:
         edge = self.cut_edge
         if event == cv2.EVENT_LBUTTONDOWN:
             self.gbPoint = (x,y)
-            cv2.circle(frame_show,self.gbPoint,2,(0,0,255),2)
+            cv2.circle(frame_show,self.gbPoint,1,(0,0,255),1)
             x1,x2 = max(x-edge,0), min(x+edge,frame.shape[1]-1)
             y1,y2 = max(y-edge,0), min(y+edge,frame.shape[0]-1)
-            cv2.imshow("Point",frame_show[y1:y2,x1:x2])
+            cv2.imshow("Point",cv2.resize(frame_show[y1:y2,x1:x2], (800,800)))
             cv2.moveWindow("Point",x-edge//2,y-edge//2)
             key = cv2.waitKey(0) & 0xFF
             if key == 13:
@@ -263,9 +263,7 @@ def conv2d(bitmap, kernal):
     return res
                 
 class Identifier:
-    def __init__(self,frame) -> None:
-        self.frame = frame
-        self.select_window(frame)
+    def __init__(self) -> None:
         self.Types = ['cross','add','square']
     
     def parse(self,bitmap):
@@ -282,44 +280,88 @@ class Identifier:
                 max_K = K
         return max_type,max_K
     
-    def evaluate(self,x):
-        return -np.cos(x*np.pi/255)
-    
-    def generate_kernal(self):
-        global cut_img,K
-        w,h,c = cut_img.shape()
-        if w != h:
-            raise ValueError("not a square")
-        K = np.zeros((h,w))
+    def evaluate(self, x, thresh=120):
+        # return -np.cos(x*np.pi/255) / 100
+        pass
+
+    def normalize(self, mat, significance=100):
+        h,w = mat.shape
+        pos_sum = 0
+        neg_sum = 0  # 绝对值
         for i in range(h):
             for j in range(w):
-                K[i] [j] = self.evaluate(cut_img[i][j])
+                if mat[i][j] > 0:
+                    pos_sum += mat[i][j]
+                else:
+                    neg_sum -= mat[i][j]
+        if pos_sum == 0 or neg_sum == 0:
+            raise ValueError('mat is not bi-chr')
+        norm = np.zeros((h,w))
+        for i in range(h):
+            for j in range(w):
+                if mat[i][j] > 0:
+                    norm[i][j] = mat[i][j] * significance / pos_sum
+                else:
+                    norm[i][j] = mat[i][j] * significance / neg_sum
+        return norm
+
+    
+    """kind: [uniform, sin]"""
+    def generate_kernal(self, thresh=120, kind='uniform'):
+        global cut_img,K
+        h,w,c = cut_img.shape
+        gray = cv2.cvtColor(cut_img, cv2.COLOR_BGR2GRAY)
+        if kind == 'uniform':
+            pos_n = 0
+            neg_n = 0
+            for i in range(h):
+                for j in range(w):
+                    if gray[i][j] >= thresh:
+                        pos_n += 1
+                    else:
+                        neg_n += 1
+            K = np.zeros((h,w))
+            high = pos_n / (pos_n + neg_n)
+            low = -(neg_n / (pos_n + neg_n))
+            for i in range(h):
+                for j in range(w):
+                    if gray[i][j] >= thresh:
+                        K[i][j] = high
+                    else:
+                        K[i][j] = low 
+            print(K.shape)
+        else:
+            K = np.zeros((h,w))
+            for i in range(h):
+                for j in range(w):
+                    K[i][j] = np.sin( (gray[i][j] - 127) / 128 * np.pi / 2)
+            K = self.normalize(K)
     
     def select_window(self,frame):
-        minis = []
+        global minis
         if monitor_show(frame, function = self.mouse, container=self):
             return 'q'
-        x,y,w,h = self.square
-        self.generate_kernal()
+        self.generate_kernal(kind='sin')
         self.K = K
-        return g_rect,minis
+        # print(minis)
+        return g_rect, minis
         
     def mouse(self,event,x,y,flags,frame):
         frame_show = frame.copy()
         global point1, point2, g_rect, cut_img
         if event == cv2.EVENT_LBUTTONDOWN:  # 左键点击,则在原图打点
-            print("1-EVENT_LBUTTONDOWN")
+            # print("1-EVENT_LBUTTONDOWN")
             point1 = (x, y)
             cv2.circle(frame_show, point1, 10, (0, 255, 0), 5)
             cv2.imshow("image", frame_show)
     
         elif event == cv2.EVENT_MOUSEMOVE and (flags & cv2.EVENT_FLAG_LBUTTON):  # 按住左键拖曳，画框
-            print("2-EVENT_FLAG_LBUTTON")
+            # print("2-EVENT_FLAG_LBUTTON")
             cv2.rectangle(frame_show, point1, (x, y), (255, 0, 0), thickness=2)
             cv2.imshow("image", frame_show)
     
         elif event == cv2.EVENT_LBUTTONUP:  # 左键释放，显示
-            print("3-EVENT_LBUTTONUP")
+            # print("3-EVENT_LBUTTONUP")
             point2 = (x, y)
             cv2.rectangle(frame_show, point1, point2, (0, 0, 255), thickness=2)
             cv2.imshow("image", frame_show)
@@ -331,16 +373,18 @@ class Identifier:
                 g_rect=[min_x,min_y,width,height] # (x,y,w,h)
                 cut_img = frame[min_y:min_y + height, min_x:min_x + width]
                 cv2.imshow('roi',cut_img)
+            else:
+                # cv2.destroyWindow("image")
+                pass
         else:
             pass
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture("C:\\Users\\LENOVO\\Videos\\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
+    cap = cv2.VideoCapture(r"C:\Users\songy\Videos\DSC_2059.MOV")
     ret, img = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
 
     if __name__ == '__main__':
-        # Idf = Identifier(img)
-        Trc = Tractor()
-        Trc.tractPoint(img)
+        Idf = Identifier()
+        Idf.select_window(img)

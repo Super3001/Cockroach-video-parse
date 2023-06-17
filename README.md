@@ -22,7 +22,7 @@ To do List:
 - [ ] sequence of plots
 - [ ] tract point show output to out_window
 - [ ] add cut_edge when tracting points
-- [ ] check if the multiple process is OK
+- [x] check if the multiple process is OK
 - [ ] complete feature_detection
 - [x] rewrite prompt(select_window)
 - [ ] solve the filename problem
@@ -55,6 +55,7 @@ To do List:
 - [x] central-control mode ["release","debug"]
 - [ ] Dynamic window size
 - [x] update display_window
+- [ ] write about *minis*, balance accuracy with time
 
 
 
@@ -63,3 +64,11 @@ My Log:
 5.25 afternoon update radius result output(file:deal_with_data.py) and not push yet and delete file...
 
 5.29 I wonder why the scale of window changed (as former 1200x700 now 1600x850 to the same size)
+
+6.17 write skip_read format like this: 
+
+    ```
+    if skip_n > 1 and cnt % skip_n != 1:
+
+        continue
+    ```

@@ -53,7 +53,8 @@ text.pack(fill="both", expand=True)
 
 root.mainloop()
 """
-import tkinter as tk
+
+'''import tkinter as tk
 
 root = tk.Tk()
 root.geometry("700x500")
@@ -79,4 +80,38 @@ canvas.pack(side="left", fill="both", expand=True)
 scrollbar.pack(side="right", fill="y")
 title.pack(side="top")
 
+root.mainloop()'''
+
+import tkinter as tk
+
+class App:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("输入框示例")
+        
+        # 创建一个按钮
+        self.button = tk.Button(self.master, text="点击打开输入框", command=self.open_dialog)
+        self.button.pack(pady=10)
+        
+        # 创建一个输入框
+        self.entry = tk.Entry(self.master)
+        
+    def open_dialog(self):
+        # 创建一个弹出窗口
+        self.dialog = tk.Toplevel(self.master)
+        self.dialog.title("输入框")
+        
+        # 在弹出窗口中添加一个输入框和一个确认按钮
+        tk.Label(self.dialog, text="请输入内容：").pack(pady=10)
+        self.entry.pack(pady=10)
+        tk.Button(self.dialog, text="确认", command=self.get_input).pack(pady=10)
+        
+    def get_input(self):
+        # 获取输入框中的内容
+        input_text = self.entry.get()
+        print("输入的内容是：", input_text)
+        self.dialog.destroy()
+
+root = tk.Tk()
+app = App(root)
 root.mainloop()

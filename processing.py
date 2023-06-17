@@ -8,42 +8,6 @@ from control import pstatus
 # pstatus == "release"
 # pstatus == "debug"
 
-K_cross = np.array([
-    [-4,-4,-4,5,5,5,-4,-4,-4],
-    [-4,-4,-4,5,5,5,-4,-4,-4],
-    [-4,-4,-4,5,5,5,-4,-4,-4],
-    [5,5,5,-4,-4,-4,5,5,5],
-    [5,5,5,-4,-4,-4,5,5,5],
-    [5,5,5,-4,-4,-4,5,5,5],
-    [-4,-4,-4,5,5,5,-4,-4,-4],
-    [-4,-4,-4,5,5,5,-4,-4,-4],
-    [-4,-4,-4,5,5,5,-4,-4,-4]
-])
-
-K_add = np.array([
-    [5,5,5,-4,-4,-4,5,5,5],
-    [5,5,5,-4,-4,-4,5,5,5],
-    [5,5,5,-4,-4,-4,5,5,5],
-    [-4,-4,-4,-4,-4,-4,-4,-4,-4],
-    [-4,-4,-4,-4,-4,-4,-4,-4,-4],
-    [-4,-4,-4,-4,-4,-4,-4,-4,-4],
-    [5,5,5,-4,-4,-4,5,5,5],
-    [5,5,5,-4,-4,-4,5,5,5],
-    [5,5,5,-4,-4,-4,5,5,5]
-])
-
-K_rect = np.array([
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,8,8,8,-1,-1,-1],
-    [-1,-1,-1,8,8,8,-1,-1,-1],
-    [-1,-1,-1,8,8,8,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1],
-    [-1,-1,-1,-1,-1,-1,-1,-1,-1]
-])
-
 def my_show(frame, ratio=1, center_point=(-1,-1), time=0):
     # print(center_point)
     height = frame.shape[0]
@@ -182,7 +146,7 @@ def color_deal(frame,midval,dis,OutWindow=None): # 用颜色过滤
     return 'ok', (y_up,y_down,x_left,x_right)
 
 """颜色识别的主函数"""
-def main_color(cap,root,OutWindow,progressBar,pm=1):  # 颜色提取
+def main_color(cap,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
     border = 20
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     ret, frame0 = cap.read()
@@ -215,8 +179,12 @@ def main_color(cap,root,OutWindow,progressBar,pm=1):  # 颜色提取
         frame = expand(frame,pm)
         if not success:
             break
+        cnt += 1
+        if skip_n > 1 and cnt % skip_n != 1:
+            continue
         progressBar['value'] = cnt
         root.update()
+
         domain = [max(x,0) for x in domain]
         rtn, rect = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],list(midval_f),15, 0)
           
@@ -240,7 +208,6 @@ def main_color(cap,root,OutWindow,progressBar,pm=1):  # 颜色提取
                 OutWindow.textboxprocess.insert('0.0',str(cnt)+': '+print_mid_point(domain) + '\n')
             else:
                 file.write(print_mid_point(domain) + '\n')
-        cnt += 1
     file.close()
     
     showinfo('', '请提取后点颜色，确定按回车')
@@ -260,8 +227,12 @@ def main_color(cap,root,OutWindow,progressBar,pm=1):  # 颜色提取
         success, frame = cap.read()
         if not success:
             break
+        cnt += 1
+        if skip_n > 1 and cnt % skip_n != 1:
+            continue
         progressBar['value'] = cnt + num
         root.update()
+
         domain = [max(x,0) for x in domain]
         rtn, rect = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],list(midval_b),15, 0)
         if rtn==0:
@@ -284,7 +255,6 @@ def main_color(cap,root,OutWindow,progressBar,pm=1):  # 颜色提取
                 OutWindow.textboxprocess.insert('0.0',str(cnt)+': '+print_mid_point(domain) + '\n')
             else:
                 file.write(print_mid_point(domain) + '\n')
-        cnt += 1
     
     file.close()
     cv.destroyAllWindows() 
@@ -295,7 +265,7 @@ def main_color(cap,root,OutWindow,progressBar,pm=1):  # 颜色提取
     pass
 
 """meanshift方法识别主函数"""
-def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
+def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1):
     # 输入进度条所在窗口，输出窗口，进度条和处理缩放比率
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     ret, frame = cap.read()
@@ -343,8 +313,12 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
             
             ret, frame = cap.read()
             if ret == True:
+                cnt += 1
+                if skip_n > 1 and cnt % skip_n != 1:
+                    continue
                 progressBar['value'] = cnt
                 root.update()
+
                 frame = expand(frame,pm)
                 x, y, w, h = track_window
                 if OutWindow and OutWindow.display:
@@ -370,8 +344,6 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                 else:
                     pass
                 
-                cnt += 1
-                
             else:
                 break
     else:
@@ -386,8 +358,12 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
             
             ret, frame = cap.read()
             if ret == True:
+                cnt += 1
+                if skip_n > 1 and cnt % skip_n != 0:
+                    continue
                 progressBar['value'] = cnt
                 root.update()
+
                 frame = expand(frame,pm)
                 x, y, w, h = track_window
                 if OutWindow and OutWindow.display:
@@ -411,8 +387,6 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                         return 'stop'
                 else:
                     pass
-                
-                cnt += 1
                 
             else:
                 break
@@ -460,33 +434,31 @@ def conv2d_res(frame, kernal, pos):
     return res
     
 def max_conv2d(frame, domain, K, display=1):
-    max_value = 0
+    max_value = -1e7
     max_pos = (0,0)
     for i in range(domain[0],domain[1]+1):
         for j in range(domain[2],domain[3]+1):
             now_value = conv2d_res(frame,K,(i,j))
-            # # print(type)
-            # if type == 'cross':
-            #     now_value = conv2d_res(frame,K_cross,(i,j))
-            # elif type == 'add':
-            #     now_value = conv2d_res(frame,K_add,(i,j))
-            # elif type == 'rect':
-            #     now_value = conv2d_res(frame,K_rect,(i,j))
-            # else:
-            #     pass
             if now_value > max_value:
                 max_value = now_value
                 max_pos = (i,j)
                 
-    max_pos = (max_pos[0]+4, max_pos[1]+4)
+    if max_value == 0:
+        return (0,0)
+    
+    max_pos_ori = max_pos
+    h, w = K.shape
+    max_pos_center = (max_pos[0] + h//2, max_pos[1] + w//2)
+
     if display:
         frame_show = cv.cvtColor(frame,cv.COLOR_GRAY2BGR)
-        frame_show = cv.circle(frame_show,tuple(reversed(max_pos)),3,(0,0,255))
-        if my_show(dcut(frame_show,(domain[0]-20,domain[1]+1+20,domain[2]-20,domain[3]+1+20))):
-            return 0
+        frame_show = cv.circle(frame_show,tuple(reversed(max_pos_center)),3,(0,0,255))
+        print(frame_show.shape)
+        if my_show(dcut(frame_show,(max_pos_center[0]-20,max_pos_center[0]+1+20,max_pos_center[1]-20,max_pos_center[1]+1+20))):
+            return (0,0)
         print('max_value: ' + str(max_value))
         print('max_pos: ' + str(max_pos))
-    return max_pos
+    return max_pos_ori
 
 def edge(frame):
     
@@ -552,35 +524,54 @@ def rect_points(points):
     Y = [y[1] for y in points]
     return (min(Y), max(Y), min(X), max(X))
 
-def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None): # 提取叉号标志点
+def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1): 
     offset = 5
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
-    Trc = Tractor()
+    frame_num = cap.get(7)
     
     ret, frame0 = cap.read()
     size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
-    (x,y,w,h),minis = Trc.select_window(frame0)
+    Idf = Identifier()
+    showinfo(message='请拖动选择初始矩形框，之后回车')
+    rtn_ = Idf.select_window(frame0)
+    if rtn_ == 'q':
+        return
+    (x,y,w,h), minis = rtn_
     if OutWindow and OutWindow.display:
         print("0 :")
     domain = (y,y+h,x,x+w)
-    now_pos = max_conv2d(cv.cvtColor(frame0, cv.COLOR_BGR2GRAY),domain,Trc.K)
+    # domain[0] = max(0, domain[0] - offset)
+    # domain[1] = min(size[1], domain[1] + offset)
+    # domain[2] = max(0, domain[2] - offset)
+    # domain[3] = min(size[0], domain[3] + offset)
+    now_pos = max_conv2d(cv.cvtColor(frame0, cv.COLOR_BGR2GRAY),domain,Idf.K, display=OutWindow and OutWindow.display)
+
     domain = (now_pos[0]-offset,now_pos[0]+offset, now_pos[1]-offset,now_pos[1]+offset)
     
     file = open('out-feature-1.txt','w') if kind == 'front' else open('out-feature-2.txt','w')
-    
+    progressBar['maximum'] = frame_num
     success = 1
     cnt = 0
+    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     while success:
         success, frame = cap.read()
         if not success:
             break
+        cnt += 1
+        if skip_n > 1 and cnt % skip_n != 1:
+            continue
+        progressBar['value'] = cnt
+        root.update()
+
         frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        cnt+=1
         if OutWindow and OutWindow.display:
             print(cnt,':')
-        now_pos = max_conv2d(frame,domain,Trc.K)
-        
+        now_pos = max_conv2d(frame,domain,Idf.K, display=OutWindow and OutWindow.display)
+        if now_pos == (0,0):
+            print('end(manually)')
+            return 1
+
         domain = (now_pos[0]-12,now_pos[0]+12, now_pos[1]-12,now_pos[1]+12)
         if OutWindow and OutWindow.display:
             print('now_pos:' + str(now_pos))
@@ -589,7 +580,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None): # 提�
     showinfo(message='检测完成！')
     file.close()
     cv.destroyAllWindows()
-    pass 
+    return 0
         
 def cleanout(points, rect):
     X = [x[0] for x in points]
@@ -645,7 +636,7 @@ def tilt(edge, display):
             return (None,) * 3
     return rect, angle, len(points)
 
-def contour(cap,background,root,OutWindow,progressBar, turn_start=0,turn_end=0): # 根据外轮廓算角度
+def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,turn_end=0): # 根据外轮廓算角度
     
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     Trc = Tractor()
@@ -653,7 +644,7 @@ def contour(cap,background,root,OutWindow,progressBar, turn_start=0,turn_end=0):
     size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
     frame_num = cap.get(7)
-    showinfo(message='请选择初始矩形框，点击左上角和右下角，之后回车')
+    showinfo(message='请拖动选择初始矩形框，之后回车')
     file_theta = open('out-contour-theta.txt','w')
     file_center = open('out-contour-center.txt','w')
     r, h, c, w = Trc.select_rect(frame0)
@@ -691,10 +682,13 @@ def contour(cap,background,root,OutWindow,progressBar, turn_start=0,turn_end=0):
         success, frame = cap.read()
         if not success:
             break
+        cnt += 1
+        if skip_n > 1 and cnt % skip_n != 1:
+            continue
         progressBar['value'] = cnt
         root.update()
+
         cha = cv.subtract(edge(dcut(frame,domain)),edge(dcut(background,domain)))
-        cnt+=1
         if OutWindow and OutWindow.display:
             OutWindow.textboxprocess.insert('0.0', f'{cnt}:\n')
         if cnt < turn_start:
@@ -741,7 +735,7 @@ class FakeMs:
         self.cnt += 1
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture("C:\\Users\\LENOVO\\Videos\\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
+    cap = cv2.VideoCapture(r"C:\Users\songy\Videos\DSC_2059.MOV")
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -765,4 +759,4 @@ if pstatus == "debug":
         def close(self):
             self.master.destroy()
     if __name__ == '__main__':
-        meanshift(cap,'front',root=FakeMs(),OutWindow=None,progressBar=dict())
+        feature(cap,'front',root=FakeMs(),OutWindow=None,progressBar=dict())
