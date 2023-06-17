@@ -66,6 +66,11 @@ def my_show(frame, ratio=1, center_point=(-1,-1), time=0):
         key = cv.waitKey(time)
     if key == ord('q'):
         return 1
+    elif key == 32:
+        if time>0:
+            return my_show(frame, ratio, center_point, time=0)
+        else:
+            pass
     return 0
 
 def cut(frame, percentage=(0,1,0,1)):
@@ -177,7 +182,7 @@ def color_deal(frame,midval,dis,OutWindow=None): # 用颜色过滤
     return 'ok', (y_up,y_down,x_left,x_right)
 
 """颜色识别的主函数"""
-def main_color(cap,root,OutWindow,progressBar):  # 颜色提取
+def main_color(cap,root,OutWindow,progressBar,pm=1):  # 颜色提取
     border = 20
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     ret, frame0 = cap.read()
@@ -188,7 +193,7 @@ def main_color(cap,root,OutWindow,progressBar):  # 颜色提取
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))) 
     num = cap.get(7)
     Trc = Tractor()
-    
+    Trc.set("mutiple",pm)
     showinfo('','请提取前点颜色，确定按回车')
     midval_f = Trc.tract_color(frame0)
     if OutWindow and OutWindow.display:
@@ -199,12 +204,15 @@ def main_color(cap,root,OutWindow,progressBar):  # 颜色提取
     
     cap.set(cv.CAP_PROP_POS_FRAMES, 0) # 重置为第一帧
     domain = (0,frame0.shape[0],0,frame0.shape[1]) # 上下左右
+    domain = [int(x*pm) for x in domain]
     success = 1
     cnt = 0
     progressBar['maximum'] = num*2
     file = open('out-color-1.txt','w')
+    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     while success:
         success, frame = cap.read()
+        frame = expand(frame,pm)
         if not success:
             break
         progressBar['value'] = cnt
@@ -326,7 +334,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
         if OutWindow and OutWindow.display:
             OutWindow.lift()
             # OutWindow.WindowsLift()
-            OutWindow.textboxprocess.delete('0.0','end')
+            # OutWindow.textboxprocess.delete('0.0','end')
             OutWindow.textboxprocess.insert('0.0',"帧序号：[中心点坐标]\n")
         else:
             file = open('out-meanshift-1.txt','w')
@@ -356,9 +364,9 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
                     x, y, w, h = track_window
                     img2 = cv.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
                     
-                    if my_show(img2,OutWindow.ratio,midPoint((x, y), (x + w, y + h)), 60):
+                    rtn = my_show(img2,OutWindow.ratio,midPoint((x, y), (x + w, y + h)), 60)
+                    if rtn == 1:
                         return 'stop'
-
                 else:
                     pass
                 
@@ -369,7 +377,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1):
     else:
         if OutWindow and OutWindow.display:
             OutWindow.lift()
-            OutWindow.textboxprocess.delete('0.0','end')
+            # OutWindow.textboxprocess.delete('0.0','end')
             OutWindow.textboxprocess.insert('0.0',"闪光帧序号：\n")
         else:
             file = open('out-meanshift-2.txt','w')

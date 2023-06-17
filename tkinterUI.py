@@ -23,7 +23,7 @@ if pstatus == "debug":
 图片 = '.\\src\\'
 
 # 提示信息
-Prompt = "\n1.图像展示过程按q退出\n"
+Prompt = "\n1.图像展示过程按q退出\n2.按空格键暂停\n"
 msg_NoVideo = '请先导入视频'
 
 # 缩放比例 x: cm/px
@@ -197,8 +197,9 @@ class APP:
         if type(self.pm) != int or self.pm <= 0:
             tkinter.messagebox.showinfo(message='请输入正整数！')
             self.pm = 1
-        pass
-        
+        else:
+            tkinter.messagebox.showinfo(message=f'已修改过程缩放倍数：{self.pm}')
+           
     def on_closing(self):
         self.output_window.display = 0
         self.output_window.close()
@@ -352,7 +353,7 @@ class ResWindow:
         self.master = master
         
         master.title('结果查看页面')
-        master.geometry('400x200+600+400')
+        master.geometry('400x250+600+400')
         
         button1 = Button(master, text='轨迹和转向半径', width=20, font=('GB2312', 18), background='Tan', command=self.show_path)
         button1.grid(row=0, column=0, sticky=W)
@@ -390,11 +391,27 @@ class OutputWindow:
         
         master.title('过程显示页面')
         master.geometry('720x600+500+300')
-        lable_board = Label(master,text = "Output Board",font=('Bodoni MT',30),
+        title = Label(master,text = "Output Board",font=('Bodoni MT',30),
                             anchor="center")
-        lable_board.place(x = 10, y = 10)
-        self.textboxprocess = Text(master)
-        self.textboxprocess.place(x=10,y=80,width=700,height=500)
+        title.pack(pady=10)
+        # lable_board.place(x = 10, y = 10)
+        # 创建可滚动的Text组件
+        canvas = tk.Canvas(master, bg="white", highlightthickness=0)
+        frame = tk.Frame(canvas, bg="white")
+        scrollbar = tk.Scrollbar(master, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=frame, anchor="nw")
+
+        text = tk.Text(frame, font=("Bodoni MT", 12))
+        text.pack(fill="both", expand=True, padx=10)
+
+        # 将组件放置在窗口中
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        title.pack(side="top")
+        self.textboxprocess = text
         # self.textboxprocess.insert("insert","will be shown here\n")
         self.textboxprocess.insert("insert","\n提示信息\n" + Prompt)
         self.startTime = ''

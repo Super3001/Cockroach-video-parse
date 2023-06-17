@@ -46,15 +46,15 @@ To do List:
 
 - [ ] some problems about display_window
 
-- [ ] put dispWindow to the top when detecting
+- [-] put dispWindow to the top when detecting
 - [x] add prompt: 提取过程中止
-- [ ] WindowsLift
-- [ ] a pause button ({space})
-- [ ] outWindow open and close
+- [-] WindowsLift
+- [x] a pause button ({space})
+- [x] outWindow open and close
 - [ ] contour-detection my_show close error
 - [x] central-control mode ["release","debug"]
 - [ ] Dynamic window size
-- [ ] update display_window
+- [x] update display_window
 
 
 
