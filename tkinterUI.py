@@ -4,8 +4,9 @@ import tkinter.messagebox
 from tkinter import filedialog
 import cv2 as cv
 from processing import *
-from light import *
-from deal_with_data import *
+from light import tractLight
+# from deal_with_data import *
+from deal_data import Dealer
 import utils
 import sys, os
 import control
@@ -67,8 +68,10 @@ class APP:
                   )
         self.lb1.pack(side=TOP)
         self.lb1_photo = PhotoImage(file=图片+'background.png')
-        self.fps = '-'
-        self.nframe = '-'
+        self.fps = '- '
+        self.nframe = '- '
+        self.video_width = '- '
+        self.video_height = '- '
         self.lbconfig = Label(middleframe, text=f'num_frames : {self.nframe}, fps : {self.fps}', pady=5, font=('Times New Roman',15))
         self.lbconfig.pack(side=TOP)
         # temporary
@@ -87,7 +90,14 @@ class APP:
         self.e1.grid(row=1,column=2)
         self.ebt1 = Button(middledownframe, text='确定', font=("等线",15,"underline"),relief=FLAT,command=self.set_process_multiple)
         self.ebt1.grid(row=1,column=3)
-        self.progressbar = ttk.Progressbar(middleframe,length=200)
+        self.lb3 = Label(middledownframe,text='读取的缩放倍数：',font=("等线",15))
+        self.lb3.grid(row=2,column=1)
+        self.e2 = Entry(middledownframe, font=("等线",15),relief=FLAT,width=12)
+        self.e2.insert(0, "1(输入一个正数)")
+        self.e2.grid(row=2,column=2)
+        self.ebt2 = Button(middledownframe, text='确定', font=("等线",15,"underline"),relief=FLAT,command=self.set_reading_multiple)
+        self.ebt2.grid(row=2,column=3)
+        self.progressbar = ttk.Progressbar(middleframe,length=400)
         self.progressbar.pack(side=TOP,pady=20)
         self.progressbar['maximum'] = 100
         self.progressbar['value'] = 0
@@ -95,6 +105,8 @@ class APP:
         self.bt10.pack(side=TOP,pady=0)
         self.bt11 = Button(middleframe, text='frame skip',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.set_skip)
         self.bt11.pack(side=TOP,pady=0)
+        self.lbconfig_2 = Label(middleframe, text=f'width : {self.video_width}px, height : {self.video_height}px', pady=5, font=('Times New Roman',15))
+        self.lbconfig_2.pack(side=TOP,pady=5)
         self.bt2 = Button(rightframe,width=15,height=1,text='meanshift',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_meanshift)
         self.bt2.pack(side=TOP,pady=10)
@@ -119,13 +131,14 @@ class APP:
         self.bt9.pack(side=TOP,pady=(0,10))
         self.cap = None
         if(self.project_status == 'debug'):
-            self.status = 'meanshift'
+            self.status = 'feature'
             self.light = 1
             self.fps = 60
             self.filename = 'example.mp4'
-            self.magRatio = 0.0308*50
+            # self.magRatio = 0.0308*50
+            self.magRatio = 0
             self.Ratio_to_cm = 0.0308
-            self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            self.timestr = utils.timestr()
             self.detect_mark_str = f'{self.status}-{self.timestr}'
         else:
             self.status = None
@@ -139,9 +152,11 @@ class APP:
         self.output_window = None
         self.first_middle_point = (-1,-1)
         self.pm = 1
+        self.rm = 1
         self.master.geometry('1200x700+50+50') # 失效？
         self.tier2 = None
         self.skip_num = 1
+
         
     def quit(self):
         # self.master.destroy()
@@ -159,9 +174,12 @@ class APP:
         self.cap = cv.VideoCapture(filename)
         if self.cap == None:
             return
+        self.video_width = int(self.cap.get(3))
+        self.video_height = int(self.cap.get(4))
         self.fps = int(round(self.cap.get(5)))
         self.nframe = int(self.cap.get(7))
         self.lbconfig['text'] = f'num_frames : {self.nframe}, fps : {self.fps}'
+        self.lbconfig_2['text'] = f'width : {self.video_width}px, height : {self.video_height}px'
         # filename: absolute path
         pos = filename.rfind('/')
         self.filename = 'video'
@@ -191,7 +209,7 @@ class APP:
         tkinter.messagebox.showinfo(message='已关闭缩放')
         
     def show_first_frame(self):
-        self.cap.set(cv.CAP_PROP_POS_FRAMES, 0)
+        self.cap.set(1, 0) # 重置为第一帧
         ret, frame0 = self.cap.read()
         print('ratio:',self.magRatio)
         my_show(frame0,self.magRatio,self.first_middle_point)
@@ -203,6 +221,14 @@ class APP:
             self.pm = 1
         else:
             tkinter.messagebox.showinfo(message=f'已修改过程缩放倍数：{self.pm}')
+
+    def set_reading_multiple(self):
+        self.rm = eval(self.e2.get())
+        if type(self.pm) not in [int, float] or self.rm <= 0:
+            tkinter.messagebox.showinfo(message='请输入正数！')
+            self.rm = 1
+        else:
+            tkinter.messagebox.showinfo(message=f'已修改过程缩放倍数：{self.rm}')
            
     def on_closing(self):
         self.output_window.display = 0
@@ -220,7 +246,7 @@ class APP:
                 # self.output_window.ratio = self.magRatio
                 self.output_window.textboxprocess.insert('0.0','ratio: '+str(self.output_window.ratio)+'\n')
             # tkinter.messagebox.showinfo(message='已打开提取过程展示')
-            self.output_window.startTime = datetime.datetime.now().strftime('%H:%M:%S')
+            self.output_window.startTime = utils.timestr()
             print(self.output_window.startTime)
             self.tier2.mainloop()
         
@@ -238,7 +264,7 @@ class APP:
         main_color(self.cap,self.master,self.output_window,self.progressbar,self.pm,self.skip_num)
         self.refresh()
         self.status = 'color'
-        self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def go_meanshift(self):
@@ -262,7 +288,7 @@ class APP:
                 self.output_window.textboxprocess.insert('0.0','后点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
         self.status = 'meanshift'
-        self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def go_contour(self):
@@ -274,7 +300,7 @@ class APP:
         self.backgroundImg = cv.imread(filename)
         contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar,self.skip_num)
         self.status = 'contour'
-        self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def go_feature(self):
@@ -287,7 +313,7 @@ class APP:
         feature(self.cap,kind='back',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master,skip_n=self.skip_num)
         
         self.status = 'feature'
-        self.timestr = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+        self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def tract_light(self):
@@ -300,12 +326,12 @@ class APP:
         self.light = 1
         self.refresh()
         
-    def view_result(self):
+    def view_result(self):  
         data_dealer = Dealer(self.cap,self.filename,self.master,self.progressbar,self.detect_mark_str)
         data_dealer.To_origin()
         if self.light:
             file_light = open('out-light-every.txt','r')
-            data_dealer.deal_time(file_light, self.fps)
+            data_dealer.parse_light(file_light, self.fps)
         else:
             tkinter.messagebox.showinfo(message='请先提取闪光')
             return
@@ -391,24 +417,22 @@ class ResWindow:
         button4 = Button(master, text='返回', width=20, font=('GB2312', 18), background='Tan', command=master.destroy)
         button4.grid(row=3, column=0, sticky=W)
         
-        # self.show()
+        self.show()
         
     def show(self):
-        tkinter.messagebox.showinfo(message='共提取到%d帧信息，%d次有效刺激' % (len(self.dealer.Theta),len(self.dealer.lighttime)))
-
+        # tkinter.messagebox.showinfo(message='共提取到%d帧信息，%d次有效刺激' % (len(self.dealer.Theta),len(self.dealer.lighttime)))
+        tkinter.messagebox.showinfo(message='共提取到 %d帧信息，%d帧有效信息，%d次有效刺激' % (self.dealer.num1, self.dealer.num, len(self.dealer.stimulus)))
+ 
     def show_angle(self):
-        self.show()
         self.dealer.showAngle(self.dealer.fps)
         self.master.lift()   
         
     def show_path(self):
-        self.show()
         self.dealer.showPath()
         self.dealer.showCurve()
         self.master.lift()
         
     def show_move(self):
-        self.show()
         self.dealer.showOmega(self.dealer.fps)
         self.master.lift()
         

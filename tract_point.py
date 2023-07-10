@@ -46,6 +46,7 @@ def monitor_show(frame, ratio=0, center_point=(-1,-1), time=0, function=None, co
         cv2.destroyAllWindows()
         return 0
     else:
+        """ 递归进行选框，功能未完成 """
         min_x,min_y,width,height = g_rect # (x,y,w,h)
         frame = frame[min_y:min_y + height, min_x:min_x + width]
         frame = cv2.resize(frame,(1200,800))
@@ -307,6 +308,7 @@ class Identifier:
 
     
     """kind: [uniform, sin]"""
+    """根据标记点特征产生卷积核"""
     def generate_kernal(self, thresh=120, kind='uniform'):
         global cut_img,K
         h,w,c = cut_img.shape
@@ -372,7 +374,10 @@ class Identifier:
                 height = abs(point1[1] - point2[1])
                 g_rect=[min_x,min_y,width,height] # (x,y,w,h)
                 cut_img = frame[min_y:min_y + height, min_x:min_x + width]
-                cv2.imshow('roi',cut_img)
+                h_, w_, _ = cut_img.shape
+                out_h = 600
+                cv2.imshow('roi', cv2.resize(cut_img, (int(out_h/h_ * w_), out_h)))
+                """ cv.resize的第二个参数的格式是(w, h) """
             else:
                 # cv2.destroyWindow("image")
                 pass

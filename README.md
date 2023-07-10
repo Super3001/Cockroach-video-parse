@@ -4,7 +4,15 @@ A python project to trace a cockroach in a video.
 
 To pack an exe: pyinstaller -F [-n *filename*] main.py
 
-To do List:
+## Note：
+1. 如果蟑螂出镜了，或者被手挡住了，则那一段的检测结果可能会失效。请务必注意这一点。
+
+
+## 代码特征：
+1. 传文件传文件句柄
+2. 中间文件和最终输出文件统一到一个格式（待完成）
+
+## To do List:
 
 - [x] 输出转向角度angle, 
 - [ ] 转向角速度omega_t, 摆动角速度omega_s,
@@ -56,6 +64,11 @@ To do List:
 - [ ] Dynamic window size
 - [x] update display_window
 - [ ] write about *minis*, balance accuracy with time
+- [ ] 读取过程缩放-功能实现
+- [x] 处理过程中写文件，要把帧数写上，以适应skip read功能
+- [x] 把deal_with_data拆分为parse_data和deal_data两个文件
+- [ ] 是否需要parse data过程中都带着frame number?
+- [ ] 数据np.array化
 
 
 
@@ -71,4 +84,23 @@ My Log:
     if skip_n > 1 and cnt % skip_n != 1:
 
         continue
+    ```
+
+  7.10 write stdout_progessbar like this:
+
+    ```
+    初始化：
+    stdoutpb = Stdout_progressbar(num, not(OutWindow and OutWindow.display))
+    cnt = 0
+    stdoutpb.reset(skip_n)
+
+    每次迭代：
+      cnt += 1
+      ...(process)
+      stdoutpb.update(cnt)
+
+    结束迭代：
+      if ...(not success):
+        stdoutpb.update(-1)
+        break
     ```

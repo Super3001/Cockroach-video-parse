@@ -1,10 +1,13 @@
+# deal_data.py
+
 import numpy as np
-from math import *
-from tkinter.messagebox import *
+from math import comb, ceil, pi, sqrt, atan
+from tkinter.messagebox import showinfo
 from scipy import interpolate
 import matplotlib.pyplot as plt
-import datetime
 import utils
+from parse_data import DataParser, f2sec
+from signals import black_sign
 import matplotlib
 matplotlib.use('TkAgg')
 
@@ -13,15 +16,6 @@ from control import pstatus
 # pstatus = "release"
 # pstatus = "debug"
 
-# global exception exit
-utils.set_exit()
-
-# global strings:
-black_sign = '-'*5 + ' black ' + '-'*5
-
-def f2sec(n,fps): # 将帧数转化为秒
-    return n / fps
-    
 def interpolate_b_spline(x, y, x_new, der=0):
     """ B 样条曲线插值 或者导数. 默认der = 0"""
     tck = interpolate.splrep(x, y)
@@ -63,42 +57,17 @@ def show_der(points, tList):
     plt.savefig('interpolate curve derivative demo.png')
     plt.show()
 
-class Dealer:
-    
-    def __init__(self,cap=None,filename=None,root=None,progressBar=None,markstr=None) -> None:
-        print(cap)
-        if cap!=None:
-            self.cap = cap
-            self.fps = int(cap.get(5))
-            self.root = root
-            self.progressBar = progressBar
-        else:
-            self.cap = None
-            self.fps = 30
-            self.root = root
-            self.progressBar = progressBar
-        self.X1 = []
-        self.Y1 = []
-        self.X2 = []
-        self.Y2 = []
-        self.K = []
-        self.D = [] # format: [val]
-        """changed:"""
-        self.X_mid = [] # format: [[frame, val]]
-        self.Y_mid = []
-        self.Theta = []
-        self.before = 0.5
-        self.after = 4.5
-        self.light_frames = [] # all the frames when the light is on
-        self.lighttime = [] # all the judged stimulate frame number
-        self.stimus = [] # list of frames that in each stimulate section
-        self.frames = [] # frame numbers
-        now = datetime.datetime.now()
-        self.timestr = now.strftime("%Y-%m-%d-%H-%M-%S")
-        # self.timestr = markstr # keep the interface with accordance
+class Dealer(DataParser):
+    def __init__(self,fps=60,filename=None,root=None,progressBar=None,markstr=None,plot_tool='plt') -> None:
+        super().__init__(fps)
+        self.root = root
+        self.progressBar = progressBar
+
         self.filename = filename
+        self.timestr = utils.timestr()
         self.out_ratio = 0
         self.str_scale = 'px'
+        self.plot_tool = plot_tool
 
     def To_centimeter(self, ratio):
         self.out_ratio = ratio
@@ -107,140 +76,18 @@ class Dealer:
     def To_origin(self):
         self.out_ratio = 0
         self.str_scale = 'px'
-        
-    """change all scaler of data"""
-    def data_change_ratio(self, ratio):
-        assert ratio > 0, "Wrong Value"
-        self.X1 = [x*ratio for x in self.X1]
-        self.X2 = [x*ratio for x in self.X2]
-        self.Y1 = [y*ratio for y in self.Y1]
-        self.Y2 = [y*ratio for y in self.Y2]
-        # self.K = []
-        self.D = [d*ratio for d in self.D]
-        for i in range(self.num):
-            self.X_mid[i][1] = self.X_mid[i][1]*ratio
-            self.Y_mid[i][1] = self.Y_mid[i][1]*ratio
-        # self.Theta = []
-
-    """changed: self.stimus"""
-    def parse_fbpoints(self,file_f,file_b, fps):
-        data1 = file_f.readlines()
-        data2 = file_b.readlines()
-        self.X1 = []
-        self.Y1 = []
-        cnt = 1
-        for i in data1:
-            x,y = tuple(i.split(', '))
-            x=float(x)
-            y=-float(y)
-            self.X1.append(x)
-            self.Y1.append(y)
-            cnt+=1
-            
-        self.X2 = []
-        self.Y2 = []
-        cnt = 1
-        for i in data2:
-            x,y = tuple(i.split(', '))
-            x=float(x)
-            y=-float(y)
-            self.X2.append(x)
-            self.Y2.append(y)
-            cnt+=1
-        
-        # showinfo(message='共检测到数据'+str(len(self.X1))+' : '+str(len(self.X2)))
-        self.K=[]
-        self.Theta=[]
-        zerot = 0
-        
-        for i in range(min(len(self.X1),len(self.X2))):
-            if(self.X1[i]==0 or self.X2[i]==0):
-                zerot += 1
-                continue
-            xmid = (self.X1[i]+self.X2[i])/2
-            ymid = (self.Y1[i]+self.Y2[i])/2
-            self.X_mid.append([i,xmid])
-            self.Y_mid.append([i,ymid])
-            dist=sqrt((self.X2[i]-self.X1[i])*(self.X2[i]-self.X1[i]) + (self.Y2[i]-self.Y1[i])*(self.Y2[i]-self.Y1[i]))
-            if self.X2[i] - self.X1[i]==0:
-                k=0
-            else:
-                k=(self.Y2[i]-self.Y1[i])/(self.X2[i]-self.X1[i])
-            self.D.append(dist)
-            self.K.append(k)
-            self.Theta.append(atan(k)*180/pi)
-        
-        self.frames = [i[0] for i in self.X_mid]
-        self.num = len(self.frames)
-        self.stimus = self.sti_segment()
-        pass
-                    
-    def parse_center_angle(self, file_center,file_angle,fps):
-        data1 = file_center.readlines()
-        data2 = file_angle.readlines()
-        self.X_mid = []
-        self.Y_mid = []
-        cnt = 0
-        for i in data1:
-            x,y = tuple(i.split(', '))
-            x = float(x)
-            y = -float(y)
-            self.X_mid.append([cnt,x])
-            self.Y_mid.append([cnt,y])
-            cnt+=1
-            
-        self.Theta = []
-        cnt = 0
-        for i in data2:
-            theta = float(i)
-            self.Theta.append(theta)
-            cnt += 1
-        # showinfo(message='共检测到数据'+str(len(self.X_mid)))
-        self.frames = [i[0] for i in self.X_mid]
-        self.num = len(self.frames)
-        self.stimus = self.sti_segment()
-
-    """bool data_format"""            
-    def deal_time(self,file_light, fps):
-        light_data = file_light.readlines()
-        self.lighttime = []
-        flag = 0
-        last_light = 0
-        for i, line in enumerate(light_data):
-            if line[0] == '1':
-                if flag == 0:
-                    flag = 1
-                elif flag == 1:
-                    self.lighttime.append(last_light)
-                    flag = 2
-                last_light = i
-            else:
-                if f2sec(i-last_light,fps)>0.5:
-                    flag = 0
-    
-    """frame data_format"""
-    def deal_time(self, file_light, fps):
-        light_data = [int(x) for x in file_light.readlines()]
-        lighttime = []
-        for i, t in enumerate(light_data):
-            if i==0:
-                lighttime.append(t)
-            elif f2sec(t-light_data[i-1],fps) > 0.5:
-                lighttime.append(t)
-        self.light_frames = light_data
-        self.lighttime = lighttime
 
     def minDis(self,f):
         min = 1e6
-        for i in self.lighttime:
+        for i in self.stimulus:
             if abs(f - i)<min:
                 min = abs(f-i)
         return min
     
-    """pf: self.frames[pf], pt: self.lighttime[pt]"""
+    """pf: self.frames[pf], pt: self.stimulus[pt]"""
     def in_section(self, pf, pt):
         frame = self.frames[pf]
-        stimulus = self.lighttime[pt]
+        stimulus = self.stimulus[pt]
         left  = stimulus - ceil(self.before*self.fps)
         right = stimulus + ceil(self.after *self.fps)
         if frame >= left and frame <= right:
@@ -249,14 +96,14 @@ class Dealer:
         
     """@depricated: judge if a frame number in section of stimulate"""
     def in_range(self,f):
-        for i in self.lighttime:
+        for i in self.stimulus:
             if f-i >= -0.5*self.fps and f-i <= 4.5*self.fps:
                 return True
         return False
     
     """origin line segment in one plot"""
     def segment(self,down,up):
-        for i in self.lighttime:
+        for i in self.stimulus:
             x,y = [i-0.5*self.fps,i-0.5*self.fps],[down,up]
             plt.plot(x,y,color="navy")
             x,y = [i+4.5*self.fps,i+4.5*self.fps],[down,up]
@@ -265,8 +112,8 @@ class Dealer:
     """@depricated: segment and plot in one function"""        
     def segment_plt(self,data:list,xlabel,ylabel,name,colors=['b','y']):
         plt.figure()
-        num_stimulate = len(self.lighttime)
-        for i, stimulus in enumerate(self.lighttime):
+        num_stimulate = len(self.stimulus)
+        for i, stimulus in enumerate(self.stimulus):
             # subplot(1,num_stimulate,i)
             plt.subplot(int(f'{num_stimulate}1{i}'))
             sub_X = []
@@ -291,7 +138,7 @@ class Dealer:
         frame_sections = [] # 所有刺激包括的帧, 按照stimulate
         pf = 0
         flag = 0
-        for i in range(self.lighttime):
+        for i in range(self.stimulus):
             frame_sections.append([])
             while(True):
                 if(self.in_section(pf, i)):
@@ -310,7 +157,7 @@ class Dealer:
         frame_sections = [] # 所有刺激包括的帧, 按照stimulate
         pf = 0
         flag = 0
-        for i in range(self.lighttime):
+        for i in range(self.stimulus):
             frame_sections.append([])
             while True:
                 if(flag):
@@ -327,14 +174,14 @@ class Dealer:
     """return every possible frame number in each segment of stimulus, return list"""
     def sti_segment(self) -> list:
         sti_sections = []
-        for stimulus in self.lighttime:
+        for stimulus in self.stimulus:
             sti_sections.append([])
             left  = stimulus - ceil(self.before*self.fps)
             right = stimulus + ceil(self.after *self.fps)
             for f in range(left, right+1):
                 if f in self.frames:
                     sti_sections[-1].append(self.frames.index(f))
-        assert len(sti_sections) == len(self.lighttime), "Wrong Value"
+        assert len(sti_sections) == len(self.stimulus), "Wrong Value"
         return sti_sections
         
     def showAngle(self,fps):
@@ -342,9 +189,9 @@ class Dealer:
         """write file and plot simultaneously"""
         with open(f'results\Angle {self.filename},{self.timestr}.txt','w') as f:
             # plt.figure()
-            # num_stimulate = len(self.lighttime)
+            # num_stimulate = len(self.stimulus)
             f.write('frame_num: angle(deg)')        
-            for i, sti_ls in enumerate(self.stimus):
+            for i, sti_ls in enumerate(self.durings):
                 # subplot(1,num_stimulate,i)
                 # plt.subplot(int(f'{num_stimulate}1{i}'))
                 plt.figure(f'pAngle-{i}')
@@ -354,7 +201,7 @@ class Dealer:
                 for pf in sti_ls:
                     x = self.frames[pf]
                     theta = self.Theta[pf]
-                    if x in self.lighttime:
+                    if x in self.stimulus:
                         f.write(f'{x:3d}: {theta:.6f} (stimulate)\n')
                         plt.scatter(x,theta,c='y')
                     else:
@@ -397,7 +244,7 @@ class Dealer:
         # output_file(filename="res_Angle.html", title="angle result")
         # save(self.pAngle)
         # save(self.pAngle_interp)
-        points = [(self.frames[i],self.Theta[i]) for i in range(len(self.frames)) if i in self.stimus[0]]
+        points = [(self.frames[i],self.Theta[i]) for i in range(len(self.frames)) if i in self.durings[0]]
         tList = np.linspace(0,1,200)
         # show_curve(points,tList)
         # show_der(points,tList)
@@ -426,7 +273,7 @@ class Dealer:
         flag = 0
         stimulate = 0
         if self.root:
-            self.progressBar['maximum'] = self.lighttime[-1]
+            self.progressBar['maximum'] = self.stimulus[-1]
         for i in range(len(self.adj)):
             
             if self.root:
@@ -461,10 +308,10 @@ class Dealer:
             if omega_center < omega_min:
                 omega_min = omega_center
             
-            if stimulate==len(self.lighttime):
+            if stimulate==len(self.stimulus):
                 break
             if flag == 0:
-                if f2sec(i - self.lighttime[stimulate],fps) > -0.5:
+                if f2sec(i - self.stimulus[stimulate],fps) > -0.5:
                     flag = 1
                     plt.scatter(i,omega_center,c='b')
                     plt.scatter(i,omega_move,c='green')
@@ -472,10 +319,10 @@ class Dealer:
                     # self.pOmega.circle(i,omega_move,size=10, line_color="white", fill_color="green", fill_alpha=0.5)
                     
             else:
-                if f2sec(i - self.lighttime[stimulate],fps) > 4.5:
+                if f2sec(i - self.stimulus[stimulate],fps) > 4.5:
                     flag = 0
                     stimulate+=1
-                elif abs(i - self.lighttime[stimulate]) < 2:
+                elif abs(i - self.stimulus[stimulate]) < 2:
                     plt.scatter(i,omega_center,c='r')
                     plt.scatter(i,omega_move,c='#2D755C')
                     # self.pOmega.circle(i,omega_center,size=10, line_color="white", fill_color="red", fill_alpha=0.5)
@@ -513,30 +360,45 @@ class Dealer:
         plt.figure('pPath')
         print(len(self.frames))
         flag = 1 if len(self.X1) > 0 else 0 # if front and back path can be drawn
-        for i,frame in enumerate(self.frames):
-            if self.minDis(frame) < 1:
-                print(frame)
-                print(self.X_mid[i],self.Y_mid[i])
-                plt.scatter(self.X_mid[i][1], self.Y_mid[i][1],c='r')
-                if flag:
-                    plt.scatter(self.X1[i], self.Y1[i], c='r')
-                    plt.scatter(self.X2[i], self.Y2[i], c='r')
+
+        print(self.stimulus)
+        cbar = utils.colorbar(gradient_length=len(self.stimulus))
+        for i, f in enumerate(self.stimulus):
+            """ 距离刺激帧最近的一帧 """
+            idx = np.argmin(np.abs(self.frames - f))
+
+            plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=tuple(cbar[i]))
+            if flag:
+                plt.scatter(self.X1[idx], self.Y1[idx], color=tuple(cbar[i]))
+                plt.scatter(self.X2[idx], self.Y2[idx], color=tuple(cbar[i]))
+
+        # for i,frame in enumerate(self.frames):
+        #     if self.minDis(frame) < 1:
+        #         print(frame)
+        #         print(self.X_mid[i],self.Y_mid[i])
+        #         plt.scatter(self.X_mid[i][1], self.Y_mid[i][1],c='r')
+        #         if flag:
+        #             plt.scatter(self.X1[i], self.Y1[i], c='r')
+        #             plt.scatter(self.X2[i], self.Y2[i], c='r')
                 
-        plot_xmid = [i[1] for i in self.X_mid if self.in_range(i[0])]
-        plot_ymid = [i[1] for i in self.Y_mid if self.in_range(i[0])]
-        plt.plot(plot_xmid, plot_ymid,c='b')
+        # plot_xmid = [i[1] for i in self.X_mid if self.in_range(i[0])]
+        # print(self.durings); return
+        plot_xmid = [self.X_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
+        # plot_ymid = [i[1] for i in self.Y_mid if self.in_range(i[0])]
+        # plot_ymid = [self.Y_mid[i] for i in range(self.num) if i in self.durings]
+        plot_ymid = [self.Y_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
+        plt.plot(plot_xmid, plot_ymid,c='b',label='mid')
         if flag:
-            # print(self.stimus)
-            # return
-            plot_xf = [self.X1[i] for i in range(self.num) if self.frames[i] in self.stimus[0]]
-            plot_yf = [self.Y1[i] for i in range(self.num) if self.frames[i] in self.stimus[0]]
-            plot_xb = [self.X2[i] for i in range(self.num) if self.frames[i] in self.stimus[0]]
-            plot_yb = [self.Y2[i] for i in range(self.num) if self.frames[i] in self.stimus[0]]
+            plot_xf = [self.X1[i] for i in range(self.num) if self.in_range(self.frames[i])]
+            plot_yf = [self.Y1[i] for i in range(self.num) if self.in_range(self.frames[i])]
+            plot_xb = [self.X2[i] for i in range(self.num) if self.in_range(self.frames[i])]
+            plot_yb = [self.Y2[i] for i in range(self.num) if self.in_range(self.frames[i])]
         
-            plt.plot(plot_xf,plot_yf,c='green')
-            plt.plot(plot_xb,plot_yb,c='purple')
+            plt.plot(plot_xf,plot_yf,c='green',label='front')
+            plt.plot(plot_xb,plot_yb,c='purple',label='back')
         plt.xlabel(f'x({self.str_scale})')
         plt.ylabel(f'y({self.str_scale})')
+        plt.legend()
         plt.title('path curve')
         plt.savefig('fig\pPath.png')
         plt.show()
@@ -580,7 +442,7 @@ class Dealer:
         """write file and plot simultaneously"""
         with open(f'results\Turning Radius {self.filename},{self.timestr}.txt','w') as f:
             f.write(f'frame_num: radius({self.str_scale})')        
-            for i, sti_ls in enumerate(self.stimus):
+            for i, sti_ls in enumerate(self.durings):
                 plt.figure(f'pRadius-{i}')
                 plt_x = []
                 plt_y = []
@@ -588,7 +450,7 @@ class Dealer:
                 for pf in sti_ls:
                     x = self.frames[pf]
                     r = self.radius[pf]
-                    if x in self.lighttime:
+                    if x in self.stimulus:
                         f.write(f'{x:3d}: {r:.6f} (stimulate)\n')
                         plt.scatter(x,r,c='r')
                     else:
@@ -597,7 +459,7 @@ class Dealer:
                         plt_x.append(x)
                         plt_y.append(r)
                     else:
-                        if x in self.lighttime:
+                        if x in self.stimulus:
                             pass
                         else:
                             plt.scatter(x,0,c='y')
@@ -623,13 +485,13 @@ class Dealer:
 if pstatus == "debug":
     if __name__ == '__main__':
         data_dealer = Dealer()
-        data_dealer.deal_time(open('out-light-every.txt','r'), 30)
-        data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
+        data_dealer.parse_light(open('out-light-every.txt','r'), 60)
+        data_dealer.parse_fbpoints(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),60)
         data_dealer.data_change_ratio(0.012)
         data_dealer.To_centimeter(0.012)
         # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
-        # data_dealer.showPath()
-        data_dealer.showCurve()
+        data_dealer.showPath()
+        # data_dealer.showCurve()
         # data_dealer.showAngle(30)
         # data_dealer.showOmega(30)
     
@@ -647,3 +509,4 @@ class Cheker:
         else:
             dealer.showDist()
             
+  

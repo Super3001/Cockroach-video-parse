@@ -2,11 +2,15 @@ import cv2 as cv
 from tract_point import *
 import numpy as np
 import math
+import time
+# from alive_progress import alive_bar
 
 """debug global property"""
 from control import pstatus
 # pstatus == "release"
 # pstatus == "debug"
+
+from utils import Stdout_progressbar
 
 def my_show(frame, ratio=1, center_point=(-1,-1), time=0):
     # print(center_point)
@@ -37,6 +41,12 @@ def my_show(frame, ratio=1, center_point=(-1,-1), time=0):
             pass
     return 0
 
+def printb(s, OutWindow, p=False): # 打印到output board上
+    s = str(s)
+    OutWindow.textboxprocess.insert("0.0",s+'\n')
+    if p:
+        print(s)
+
 def cut(frame, percentage=(0,1,0,1)):
     height = frame.shape[0]
     width = frame.shape[1]
@@ -59,9 +69,9 @@ def dist(A, B):
 
 def rect_cover1(frame, thres_value=0, edge=0): # 在指定的图像中用一个矩形覆盖所有值大于thres_value的点
     upper = (frame.shape[0],frame.shape[1])
-    lower = (0,0)
+    lower = (-1,-1)
     left = (frame.shape[0],frame.shape[1])
-    right = (0,0)
+    right = (-1,-1)
     for i in range(frame.shape[0]):
         for j in range(frame.shape[1]):
             if frame[i][j] > thres_value:
@@ -435,7 +445,7 @@ def conv2d_res(frame, kernal, pos):
     
 def max_conv2d(frame, domain, K, display=1):
     max_value = -1e7
-    max_pos = (0,0)
+    max_pos = (-1,-1)
     for i in range(domain[0],domain[1]+1):
         for j in range(domain[2],domain[3]+1):
             now_value = conv2d_res(frame,K,(i,j))
@@ -444,7 +454,7 @@ def max_conv2d(frame, domain, K, display=1):
                 max_pos = (i,j)
                 
     if max_value == 0:
-        return (0,0)
+        return (-1,-1)
     
     max_pos_ori = max_pos
     h, w = K.shape
@@ -453,9 +463,10 @@ def max_conv2d(frame, domain, K, display=1):
     if display:
         frame_show = cv.cvtColor(frame,cv.COLOR_GRAY2BGR)
         frame_show = cv.circle(frame_show,tuple(reversed(max_pos_center)),3,(0,0,255))
-        print(frame_show.shape)
-        if my_show(dcut(frame_show,(max_pos_center[0]-20,max_pos_center[0]+1+20,max_pos_center[1]-20,max_pos_center[1]+1+20))):
-            return (0,0)
+        frame_show = dcut(frame_show,(max_pos_center[0]-20,max_pos_center[0]+1+20,max_pos_center[1]-20,max_pos_center[1]+1+20))
+        print(frame_show.shape) # to debug: size after dcut
+        if my_show(frame_show):
+            return (-1,-1)
         print('max_value: ' + str(max_value))
         print('max_pos: ' + str(max_pos))
     return max_pos_ori
@@ -502,9 +513,9 @@ def get_frame(number):
         
 def rect_cover(frame, thres_value=0): # 在指定的图像中用一个矩形覆盖所有值大于thres_value的点
     upper = (frame.shape[0],frame.shape[1])
-    lower = (0,0)
+    lower = (-1,-1)
     left = (frame.shape[0],frame.shape[1])
-    right = (0,0)
+    right = (-1,-1)
     for i in range(frame.shape[0]):
         for j in range(frame.shape[1]):
             if frame[i][j] > thres_value:
@@ -524,6 +535,7 @@ def rect_points(points):
     Y = [y[1] for y in points]
     return (min(Y), max(Y), min(X), max(X))
 
+"""convolution方法识别主函数"""
 def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1): 
     offset = 5
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
@@ -539,7 +551,10 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
         return
     (x,y,w,h), minis = rtn_
     if OutWindow and OutWindow.display:
-        print("0 :")
+        printb("0 :", OutWindow)
+    else:
+        file = open('out-feature-1.txt','w') if kind == 'front' else open('out-feature-2.txt','w')
+
     domain = (y,y+h,x,x+w)
     # domain[0] = max(0, domain[0] - offset)
     # domain[1] = min(size[1], domain[1] + offset)
@@ -549,14 +564,16 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
 
     domain = (now_pos[0]-offset,now_pos[0]+offset, now_pos[1]-offset,now_pos[1]+offset)
     
-    file = open('out-feature-1.txt','w') if kind == 'front' else open('out-feature-2.txt','w')
+    stdoutpb = Stdout_progressbar(frame_num, not(OutWindow and OutWindow.display))
     progressBar['maximum'] = frame_num
     success = 1
     cnt = 0
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
+    stdoutpb.reset(skip_n=skip_n)
     while success:
         success, frame = cap.read()
         if not success:
+            stdoutpb.update(-1)
             break
         cnt += 1
         if skip_n > 1 and cnt % skip_n != 1:
@@ -566,16 +583,21 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
 
         frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         if OutWindow and OutWindow.display:
-            print(cnt,':')
+            printb(f'{cnt} :', OutWindow)
         now_pos = max_conv2d(frame,domain,Idf.K, display=OutWindow and OutWindow.display)
-        if now_pos == (0,0):
+        if now_pos == (-1,-1): # abnormal status
             print('end(manually)')
+            cv.destroyAllWindows()
             return 1
 
         domain = (now_pos[0]-12,now_pos[0]+12, now_pos[1]-12,now_pos[1]+12)
         if OutWindow and OutWindow.display:
-            print('now_pos:' + str(now_pos))
-        file.write(str(now_pos).replace('(','').replace(')','') + '\n')
+            printb('now_pos:' + str(now_pos), OutWindow)
+        else:
+            # file.write(f'{cnt} {str(now_pos).replace("(","").replace(")","")}\n')
+            file.write(f'{cnt} {now_pos[0]},{now_pos[1]}\n')
+
+        stdoutpb.update(cnt)
         
     showinfo(message='检测完成！')
     file.close()
@@ -636,6 +658,7 @@ def tilt(edge, display):
             return (None,) * 3
     return rect, angle, len(points)
 
+"""轮廓方法识别主函数"""
 def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,turn_end=0): # 根据外轮廓算角度
     
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
@@ -648,8 +671,6 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,tu
     file_theta = open('out-contour-theta.txt','w')
     file_center = open('out-contour-center.txt','w')
     r, h, c, w = Trc.select_rect(frame0)
-    if OutWindow and OutWindow.display:
-        print("0 :")
     domain = (r,r+h,c,c+w) # 上下左右
     cha = cv.subtract(edge(dcut(frame0,domain)),edge(dcut(background,domain)))
     # cha = cv.inRange(cha,120,255)
@@ -672,12 +693,13 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,tu
         if domain[2] < 0:
             domain[2] = 0
         if OutWindow and OutWindow.display:
-            print('angle:',angle)
+            printb(f'angle:',angle)
         file_theta.write(str(round(angle,2))+'\n')  
         file_center.write(print_mid_point(domain)+'\n')  
     progressBar['maximum'] = frame_num
     success = 1
     cnt = 0
+    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     while success:
         success, frame = cap.read()
         if not success:

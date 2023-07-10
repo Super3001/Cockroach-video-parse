@@ -1,14 +1,10 @@
 import cv2 as cv
 from tract_point import *
 from control import pstatus
+from utils import Stdout_progressbar
 
-def legal(x,y,width,height):
-    if x < 0 or x >= width:
-        return 0
-    if y < 0 or y >= height:
-        return 0
-    return 1
        
+""" 提取闪光主函数，不跳读 """
 def tractLight(cap, master, OutWindow, progressBar, thres=150):
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     # w, h = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
@@ -29,10 +25,13 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150):
         OutWindow.master.lift()
     cnt = 0
     progressBar['maximum'] = num
+    stdoutpb = Stdout_progressbar(num, not(OutWindow and OutWindow.display))
+    stdoutpb.reset()
     while True:
         success, frame = cap.read()
         if success:
             frame = cv.resize(frame,(1200,800))
+            cnt += 1
             progressBar['value'] = cnt
             master.update()
             max_value = 0
@@ -50,9 +49,10 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150):
             else:
                 # file.write('0\n')
                 pass
-            cnt += 1
-            
+            stdoutpb.update(cnt)
+
         else:
+            stdoutpb.update(-1)
             break
         
 if pstatus == "debug":

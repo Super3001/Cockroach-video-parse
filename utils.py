@@ -3,7 +3,73 @@ import sys
 import traceback
 import psutil
 from pywinauto.application import Application
-import time
+import time, math
+import numpy as np
+
+def timestr():
+    return time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
+    # return datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+
+class Stdout_progressbar:
+    def __init__(self, max_num, show, max_length=50) -> None:
+        interval = math.ceil(max_num / max_length)
+        length = math.ceil(max_num / interval)
+        
+        self.interval = interval
+        self.length = length
+        self.max_num = max_num
+        self.time = 0
+        self.show = show
+
+    def reset(self, skip_n=1):
+        self.time = time.perf_counter()
+        self.skip_n = skip_n
+
+    def update(self, now_num): # num从1开始
+        if not self.show:
+            return
+        
+        if now_num == 1:
+            elapse = time.perf_counter() - self.time
+            if elapse < 1:
+                print(f"{1/elapse:.1f} step(frame) per second, eta {elapse*(self.max_num - 1)/self.skip_n:.1f}s")
+            else:
+                print(f"{elapse:.1f} second per step(frame), eta {elapse*(self.max_num - 1)/self.skip_n:.1f}s")
+
+        # if now_num % self.interval == 0:
+        # 每一次都更新
+        elapse = time.perf_counter() - self.time
+        i = now_num // self.interval
+        percentage = round(now_num / self.max_num * 100)
+        print("\r", end="")
+        print("Process: {}%: |".format(percentage), "-" * (i), end="")
+        print(" "*(self.length - i),"|",f"use {elapse:.1f}s", end="")
+        sys.stdout.flush()
+
+        if now_num == -1: # 代表结束
+            elapse = time.perf_counter() - self.time
+            # if now_num % self.interval != 0:
+            #     print("\r", end="")
+            #     print(f"Progress: {percentage}%: |", "-" * self.length, "|", end="")
+
+            print("\nprecess finished!")
+            print(f"totaly use {elapse:.1f}s")
+            sys.stdout.flush()
+
+def colorbar(start_color = np.array([255, 0, 0]), end_color = np.array([255, 255, 0]), gradient_length = 100): # 红色，黄色
+    gradient_colors = np.zeros((gradient_length, 3))
+    for i in range(gradient_length):
+        gradient_colors[i] = (1 - i/(gradient_length-1)) * start_color + (i/(gradient_length-1)) * end_color
+    gradient_colors = gradient_colors / 255
+    gradient_colors[gradient_colors>1] = 1
+    return gradient_colors
+
+def legal(x,y,width,height):
+    if x < 0 or x >= width:
+        return 0
+    if y < 0 or y >= height:
+        return 0
+    return 1
 
 """debug global property"""
 from control import pstatus

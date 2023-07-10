@@ -1,0 +1,13 @@
+{
+    "comment": "settings for cockroach-video-parse-program",
+    "processing":{
+        "shifting widow offset": {
+            "value": 5,
+            "unit": "px"
+        }
+
+    }
+        
+
+}
+
