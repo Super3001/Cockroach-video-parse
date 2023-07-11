@@ -6,11 +6,33 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 ## Note：
 1. 如果蟑螂出镜了，或者被手挡住了，则那一段的检测结果可能会失效。请务必注意这一点。
+2. 标志点和环境没有明显颜色差异的，不要用color
+3. 
+
+## 功能实现：
+
+| mathod | mutiple | skip read | 
+| :--: | :--: | :--: | :--: |
+| meanshift | OK | OK |
+| color | OK | OK |
+| contour | - | OK |
+| feature | - | OK |
+
+| data object | change unit |
+| path
+| radius
+| angle
+| omega
 
 
 ## 代码特征：
 1. 传文件传文件句柄
 2. 中间文件和最终输出文件统一到一个格式（待完成）
+3. 统一用i或者idx表示下标，f或者frame表示帧数
+
+
+4. 记录数据的格式标准为int或者float一位小数（根据精度）. '{cnt} {value1,value2,...}'
+5. 处理数据的格式标准为... np.ndarray
 
 ## To do List:
 
@@ -64,11 +86,20 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 - [ ] Dynamic window size
 - [x] update display_window
 - [ ] write about *minis*, balance accuracy with time
-- [ ] 读取过程缩放-功能实现
+- [ ] 读取过程缩放-功能实现（处理过程缩放）
 - [x] 处理过程中写文件，要把帧数写上，以适应skip read功能
 - [x] 把deal_with_data拆分为parse_data和deal_data两个文件
-- [ ] 是否需要parse data过程中都带着frame number?
-- [ ] 数据np.array化
+- [x] 是否需要parse data过程中都带着frame number -> 所有的数据都进行有效化（
+
+      X1, Y1, X2, Y2是未过滤的，通过self.frames进行过滤
+
+      X_mid, Y_mid, K, D, Theta都是过滤之后的
+
+      这样统一了有效数据的帧数，可以用indice和mask写法，优先使用mask）
+
+- [x] 数据np.array化
+- [ ] 放大的选点/选颜色
+- [ ] 把QtUI去掉
 
 
 
@@ -104,3 +135,5 @@ My Log:
         stdoutpb.update(-1)
         break
     ```
+
+7.11 pm不一定是整数，但可能会有误差 

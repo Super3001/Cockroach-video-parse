@@ -86,17 +86,17 @@ class APP:
         self.lb2 = Label(middledownframe,text='处理的缩放倍数：',font=("等线",15))
         self.lb2.grid(row=1,column=1)
         self.e1 = Entry(middledownframe, font=("等线",15),relief=FLAT,width=12)
-        self.e1.insert(0, "1(请输入整数)")
+        self.e1.insert(0, "1(请输入正数)")
         self.e1.grid(row=1,column=2)
         self.ebt1 = Button(middledownframe, text='确定', font=("等线",15,"underline"),relief=FLAT,command=self.set_process_multiple)
         self.ebt1.grid(row=1,column=3)
-        self.lb3 = Label(middledownframe,text='读取的缩放倍数：',font=("等线",15))
-        self.lb3.grid(row=2,column=1)
-        self.e2 = Entry(middledownframe, font=("等线",15),relief=FLAT,width=12)
-        self.e2.insert(0, "1(输入一个正数)")
-        self.e2.grid(row=2,column=2)
-        self.ebt2 = Button(middledownframe, text='确定', font=("等线",15,"underline"),relief=FLAT,command=self.set_reading_multiple)
-        self.ebt2.grid(row=2,column=3)
+        # self.lb3 = Label(middledownframe,text='读取的缩放倍数：',font=("等线",15))
+        # self.lb3.grid(row=2,column=1)
+        # self.e2 = Entry(middledownframe, font=("等线",15),relief=FLAT,width=12)
+        # self.e2.insert(0, "1(输入一个正数)")
+        # self.e2.grid(row=2,column=2)
+        # self.ebt2 = Button(middledownframe, text='确定', font=("等线",15,"underline"),relief=FLAT,command=self.set_reading_multiple)
+        # self.ebt2.grid(row=2,column=3)
         self.progressbar = ttk.Progressbar(middleframe,length=400)
         self.progressbar.pack(side=TOP,pady=20)
         self.progressbar['maximum'] = 100
@@ -131,7 +131,7 @@ class APP:
         self.bt9.pack(side=TOP,pady=(0,10))
         self.cap = None
         if(self.project_status == 'debug'):
-            self.status = 'feature'
+            self.status = 'meanshift'
             self.light = 1
             self.fps = 60
             self.filename = 'example.mp4'
@@ -216,7 +216,7 @@ class APP:
         
     def set_process_multiple(self):
         self.pm = eval(self.e1.get())
-        if type(self.pm) != int or self.pm <= 0:
+        if type(self.pm) not in [int, float]or self.pm <= 0:
             tkinter.messagebox.showinfo(message='请输入正整数！')
             self.pm = 1
         else:
@@ -327,7 +327,7 @@ class APP:
         self.refresh()
         
     def view_result(self):  
-        data_dealer = Dealer(self.cap,self.filename,self.master,self.progressbar,self.detect_mark_str)
+        data_dealer = Dealer(self.fps, f'{self.filename} {self.status}',self.master,self.progressbar,self.detect_mark_str)
         data_dealer.To_origin()
         if self.light:
             file_light = open('out-light-every.txt','r')

@@ -1,2 +1,1 @@
-import matplotlib
-# matplotlib.use('TkAgg'
+self.tier2 = Tk()

@@ -5,6 +5,7 @@ import sys
 from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit
 from PyQt5.QtGui import QIcon
 import numpy as np
+from utils import dcut
 
 """debug global property"""
 from control import pstatus
@@ -16,6 +17,7 @@ use_global = True
 if use_global:
     g_rect = (0,)*4
     minis = []
+    end_process = False
 
 def monitor_show(frame, ratio=0, center_point=(-1,-1), time=0, function=None, container=None):
     # print(center_point)
@@ -101,14 +103,16 @@ class Tractor:
             self.gbColor = frame[y][x]
     """
     def pointColor(self,event,x,y,flags,frame):
+        end_process = False
         frame_show = frame.copy()
         if event == cv2.EVENT_LBUTTONDOWN:
             """debug"""
             # print(x, y)
             self.gbColor = frame[y][x]
-            cv2.circle(frame_show,(x,y),2,(0,0,255),2)
-            cv2.imshow("color",frame_show)
-            if cv2.waitKey(0) & 0xFF == 13:
+            cv2.circle(frame_show,(x,y),1,(0,0,255),1)
+            frame_show = dcut(frame_show, (y-30,y+30,x-30,x+30))
+            cv2.imshow("color",cv2.resize(frame_show, (400,400)))
+            if cv2.waitKey(0) & 0xFF == 13: # ENTER
                 cv2.destroyAllWindows()
             else:
                 cv2.destroyWindow("color")
@@ -385,7 +389,7 @@ class Identifier:
             pass
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture(r"C:\Users\songy\Videos\DSC_2059.MOV")
+    cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\DSC_2059.MOV")
     ret, img = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))

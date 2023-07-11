@@ -170,20 +170,7 @@ class Dealer(DataParser):
                         frame_sections.append(pf)
                 pf = pf + 1
         return frame_sections
-    
-    """return every possible frame number in each segment of stimulus, return list"""
-    def sti_segment(self) -> list:
-        sti_sections = []
-        for stimulus in self.stimulus:
-            sti_sections.append([])
-            left  = stimulus - ceil(self.before*self.fps)
-            right = stimulus + ceil(self.after *self.fps)
-            for f in range(left, right+1):
-                if f in self.frames:
-                    sti_sections[-1].append(self.frames.index(f))
-        assert len(sti_sections) == len(self.stimulus), "Wrong Value"
-        return sti_sections
-        
+            
     def showAngle(self,fps):
             
         """write file and plot simultaneously"""
@@ -361,8 +348,12 @@ class Dealer(DataParser):
         print(len(self.frames))
         flag = 1 if len(self.X1) > 0 else 0 # if front and back path can be drawn
 
-        print(self.stimulus)
+        
         cbar = utils.colorbar(gradient_length=len(self.stimulus))
+        # print('self.frames',self.frames)
+        # print('self.stimulus',self.stimulus)
+        # print('self.durings',self.durings)
+        
         for i, f in enumerate(self.stimulus):
             """ 距离刺激帧最近的一帧 """
             idx = np.argmin(np.abs(self.frames - f))
@@ -383,9 +374,9 @@ class Dealer(DataParser):
                 
         # plot_xmid = [i[1] for i in self.X_mid if self.in_range(i[0])]
         # print(self.durings); return
+        
+        """ 画出所有在刺激范围内的点 """
         plot_xmid = [self.X_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
-        # plot_ymid = [i[1] for i in self.Y_mid if self.in_range(i[0])]
-        # plot_ymid = [self.Y_mid[i] for i in range(self.num) if i in self.durings]
         plot_ymid = [self.Y_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
         plt.plot(plot_xmid, plot_ymid,c='b',label='mid')
         if flag:
@@ -402,6 +393,26 @@ class Dealer(DataParser):
         plt.title('path curve')
         plt.savefig('fig\pPath.png')
         plt.show()
+        
+        """ 分刺激画出对应的点 """
+        if len(self.durings) > 1:
+            for i, indice in enumerate(self.durings):
+                if len(indice) == 0:
+                    continue
+                xmid = self.X_mid[indice]; ymid = self.Y_mid[indice]; plt.plot(xmid, ymid, c='b', label='mid')
+                if flag: x1 = self.X1[indice]; y1 = self.Y1[indice]; x2 = self.X2[indice]; y2 = self.Y2[indice]; plt.plot(x1,y1,c='green',label='front'); plt.plot(x2,y2,c='purple',label='back')
+                
+                idx = np.argmin(np.abs(self.frames - self.stimulus[i])) # 标记刺激帧的下标
+                plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=(1,0,0))
+                if flag:
+                    plt.scatter(self.X1[idx], self.Y1[idx], color=(1,0,0))
+                    plt.scatter(self.X2[idx], self.Y2[idx], color=(1,0,0))
+                plt.xlabel(f'x({self.str_scale})')
+                plt.ylabel(f'y({self.str_scale})')
+                plt.legend()
+                plt.title(f'path curve: stimulus{i+1}')
+                plt.savefig(f'fig\pPath_{i+1}.png')
+                plt.show()
         
     def showCurve(self,):
         self.radius = []
@@ -486,9 +497,9 @@ if pstatus == "debug":
     if __name__ == '__main__':
         data_dealer = Dealer()
         data_dealer.parse_light(open('out-light-every.txt','r'), 60)
-        data_dealer.parse_fbpoints(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),60)
-        data_dealer.data_change_ratio(0.012)
-        data_dealer.To_centimeter(0.012)
+        data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),60)
+        # data_dealer.data_change_ratio(0.012)
+        # data_dealer.To_centimeter(0.012)
         # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
         data_dealer.showPath()
         # data_dealer.showCurve()

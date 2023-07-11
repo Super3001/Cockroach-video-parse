@@ -57,6 +57,8 @@ class Stdout_progressbar:
             sys.stdout.flush()
 
 def colorbar(start_color = np.array([255, 0, 0]), end_color = np.array([255, 255, 0]), gradient_length = 100): # 红色，黄色
+    if gradient_length == 1:
+        return np.array([[1,0,0]])
     gradient_colors = np.zeros((gradient_length, 3))
     for i in range(gradient_length):
         gradient_colors[i] = (1 - i/(gradient_length-1)) * start_color + (i/(gradient_length-1)) * end_color
@@ -70,6 +72,17 @@ def legal(x,y,width,height):
     if y < 0 or y >= height:
         return 0
     return 1
+
+def cut(frame, percentage=(0,1,0,1)):
+    height = frame.shape[0]
+    width = frame.shape[1]
+    obj = frame[int(height*percentage[0]):int(height*percentage[1]),int(width*percentage[2]):int(width*percentage[3])]
+    return obj
+
+def dcut(frame, domain=(0,100,0,100)):
+    """ domain: (yyxx)"""
+    obj = frame[domain[0]:domain[1],domain[2]:domain[3]]
+    return obj
 
 """debug global property"""
 from control import pstatus

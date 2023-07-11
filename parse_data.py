@@ -9,6 +9,9 @@ from control import pstatus
 # pstatus = "release"
 # pstatus = "debug"
 
+""" 主要做的是：1.数据有效化 2.segment每次刺激 """
+""" 数据的保存形式全部为np.ndarray """
+
 def f2sec(n,fps): # 将帧数转化为秒
     return n / fps
 
@@ -68,9 +71,13 @@ class DataParser:
             right = sti + ceil(self.after *self.fps)
             for f in range(left, right+1):
                 if f in self.frames:
-                    sti_sections[-1].append(self.frames.index(f))
+                    # sti_sections[-1].append(self.frames.index(f))
+                    idx = np.where(self.frames == f)[0]
+                    sti_sections[-1].append(idx)
         assert len(sti_sections) == len(self.stimulus), "Wrong Value"
+        sti_sections = [np.array(x) for x in sti_sections] # 转为np.array，好用indice格式取数据
         return sti_sections
+        
 
     """ 统一用frame data_format """
     def parse_light(self, file_light, fps):
@@ -89,65 +96,79 @@ class DataParser:
         self.timestr = utils.timestr()
         data1 = file_f.readlines()
         data2 = file_b.readlines()
-        self.X1 = []
-        self.Y1 = []
-        self.frames = []
+        self.X1 = {} # {frame: value} 格式
+        self.Y1 = {}
+        """ X1, X2因为不是用时采样，对应的frame可能不一样 """
+        nframe_1 = data1[-1].split()[0]
+        nframe_1 = int(nframe_1)
         for i in data1:
             frame, coords = i.split()
             x,y = tuple(coords.split(','))
             x=float(x)
             y=-float(y)
-            frame = int(frame)
-            self.X1.append(x)
-            self.Y1.append(y)
-            self.frames.append(frame)
+            # frame = int(frame)
+            self.X1[frame] = x
+            self.Y1[frame] = y
             
-        self.X2 = []
-        self.Y2 = []
+        
+        self.X2 = {}
+        self.Y2 = {}
+        nframe_2 = data2[-1].split()[0]
+        nframe_2 = int(nframe_2)
         for i in data2:
             frame, coords = i.split()
             x,y = tuple(coords.split(','))
             x=float(x)
             y=-float(y)
-            self.X2.append(x)
-            self.Y2.append(y)
+            self.X2[frame] = x
+            self.Y2[frame] = y
         self.num1 = len(self.X1)
         self.num2 = len(self.X2)
         ''' 前点和后点的记录数应该都是有效读的帧数，因此...，frame可以只看其中一个'''
         assert self.num1 == self.num2, "Wrong Data"
         
+        self.frames = []
         self.X_mid = []
         self.Y_mid = []
         self.K=[]
         self.D = []
         self.Theta=[]
-        zerot = 0
+        zerot = 0 # 可以计算出来
         
-        for i in range(min(len(self.X1),len(self.X2))):
-            if(self.X1[i]==0 or self.X2[i]==0):
-                self.frames[i] = 0
-                self.frames.remove(0)
-                zerot += 1
-                continue
-            xmid = (self.X1[i]+self.X2[i])/2
-            ymid = (self.Y1[i]+self.Y2[i])/2
-            self.X_mid.append(xmid)
-            self.Y_mid.append(ymid)
-            dist=sqrt((self.X2[i]-self.X1[i])*(self.X2[i]-self.X1[i]) + (self.Y2[i]-self.Y1[i])*(self.Y2[i]-self.Y1[i]))
-            if self.X2[i] - self.X1[i]==0:
-                k=0
-            else:
-                k=(self.Y2[i]-self.Y1[i])/(self.X2[i]-self.X1[i])
-            self.D.append(dist)
-            self.K.append(k)
-            self.Theta.append(atan(k)*180/pi)
-        
-        self.frames = np.array(self.frames)
+        for f in range(min(nframe_1, nframe_2)):
+            i = str(f) # key也可以当做一种下标
+            if i in self.X1 and i in self.X2:
+                if self.X1[i]!=0 and self.X2[i]!=0:
+                    """ 有效帧 """
+                    self.frames.append(f)
+                    xmid = (self.X1[i]+self.X2[i])/2
+                    ymid = (self.Y1[i]+self.Y2[i])/2
+                    self.X_mid.append(xmid)
+                    self.Y_mid.append(ymid)
+                    dist=sqrt((self.X2[i]-self.X1[i])*(self.X2[i]-self.X1[i]) + (self.Y2[i]-self.Y1[i])*(self.Y2[i]-self.Y1[i]))
+                    if self.X2[i] - self.X1[i]==0:
+                        k=0
+                    else:
+                        k=(self.Y2[i]-self.Y1[i])/(self.X2[i]-self.X1[i])
+                    self.D.append(dist)
+                    self.K.append(k)
+                    self.Theta.append(atan(k)*180/pi)
 
-        # showinfo(message='共检测到数据'+str(len(self.X1))+' : '+str(len(self.X2)))
+        """ 这里的frames一定是统一的，而且一定是在X1, X2里有值的 """
+        """ 过滤无效值 """
+        self.X1 = [float(self.X1[str(f)]) for f in self.frames]
+        self.Y1 = [float(self.Y1[str(f)]) for f in self.frames]
+        self.X2 = [float(self.X2[str(f)]) for f in self.frames]
+        self.Y2 = [float(self.Y2[str(f)]) for f in self.frames]
+        
+        """ 全部转为np.array """
+        self.frames = np.array(self.frames)
+        self.X1 = np.array(self.X1); self.Y1 = np.array(self.Y1); self.X2 = np.array(self.X2); self.Y2 = np.array(self.Y2)
+        self.X_mid = np.array(self.X_mid); self.Y_mid = np.array(self.Y_mid)
+        self.K = np.array(self.K); self.D = np.array(self.D); self.Theta = np.array(self.Theta)
         self.num = len(self.frames)
         self.__available__ = ['X1','Y1','X2','Y2','X_mid','Y_mid','K','D','Theta','frames']
-        # self.durings = self.sti_segment()
+        self.durings = self.sti_segment()
 
 
     def parse_center_angle(self, file_center,file_angle,fps):
@@ -162,7 +183,8 @@ class DataParser:
         self.K = []
         self.D = []
         """ 重置：防止污染数据 """
-
+        
+        """ center和angle是同时记录的 """
         self.X_mid = []
         self.Y_mid = []
         for i in data1:
@@ -199,7 +221,7 @@ class DataParser:
         # showinfo(message='共检测到数据'+str(len(self.X_mid)))
         self.num = len(self.frames)
         self.__available__ = ['X_mid','Y_mid','Theta','frames']
-        # self.durings = self.sti_segment()
+        self.durings = self.sti_segment()
 
         ''' end '''
 
@@ -207,5 +229,6 @@ if pstatus == "debug":
     if __name__ == '__main__':
         parser = DataParser()
         parser.parse_light(open('out-light-every.txt','r'), 30)
-        parser.parse_fbpoints(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
+        parser.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
+        print('finish')
 

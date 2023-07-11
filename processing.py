@@ -3,7 +3,8 @@ from tract_point import *
 import numpy as np
 import math
 import time
-# from alive_progress import alive_bar
+from alive_progress import alive_bar
+from utils import dcut
 
 """debug global property"""
 from control import pstatus
@@ -47,22 +48,10 @@ def printb(s, OutWindow, p=False): # 打印到output board上
     if p:
         print(s)
 
-def cut(frame, percentage=(0,1,0,1)):
-    height = frame.shape[0]
-    width = frame.shape[1]
-    obj = frame[int(height*percentage[0]):int(height*percentage[1]),int(width*percentage[2]):int(width*percentage[3])]
-    return obj
-
-def dcut(frame, domain=(0,100,0,100)):
-    obj = frame[domain[0]:domain[1],domain[2]:domain[3]]
-    return obj
-
 def expand(frame, mutiple=1):
     # print('执行了这个函数')
-    if type(mutiple) == int:
-        height, width, channel = frame.shape
-        return cv.resize(frame,(width*mutiple, height*mutiple))
-    raise TypeError('Mutiple value must be an integar')
+    height, width, channel = frame.shape
+    return cv.resize(frame,(round(width*mutiple), round(height*mutiple)))
 
 def dist(A, B):
     return math.sqrt((B[0] - A[0])**2 + (B[1] - A[1])**2)
@@ -115,7 +104,7 @@ def cleanout(points, domain):
 def print_mid_point(rect):
     x = (rect[2]+rect[3])/2
     y = (rect[0]+rect[1])/2
-    return str(round(x,1))+', '+str(round(y,1))
+    return str(round(x,1))+','+str(round(y,1))
 
 def color_deal(frame,midval,dis,OutWindow=None): # 用颜色过滤
     low_bound=tuple(map(lambda x: int(x-dis),midval))
@@ -165,7 +154,7 @@ def main_color(cap,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
         return
     size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT))) 
-    num = cap.get(7)
+    num = int(cap.get(7))
     Trc = Tractor()
     Trc.set("mutiple",pm)
     showinfo('','请提取前点颜色，确定按回车')
@@ -184,40 +173,43 @@ def main_color(cap,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
     progressBar['maximum'] = num*2
     file = open('out-color-1.txt','w')
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
-    while success:
-        success, frame = cap.read()
-        frame = expand(frame,pm)
-        if not success:
-            break
-        cnt += 1
-        if skip_n > 1 and cnt % skip_n != 1:
-            continue
-        progressBar['value'] = cnt
-        root.update()
+    with alive_bar(math.ceil(num/skip_n)) as bar:
+        while success:
+            success, frame = cap.read()
+            if not success:
+                break
+            cnt += 1
+            frame = expand(frame,pm)
+            if skip_n > 1 and cnt % skip_n != 1:
+                continue
+            progressBar['value'] = cnt
+            root.update()
 
-        domain = [max(x,0) for x in domain]
-        rtn, rect = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],list(midval_f),15, 0)
-          
-        if rtn==0:
-            domain = (0,frame0.shape[0] - 1,0,frame0.shape[1] - 1)
-            if OutWindow and OutWindow.display:
-                OutWindow.textboxprocess.insert('0.0',str(cnt)+': black\n')
+            domain = [max(x,0) for x in domain]
+            rtn, rect = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],list(midval_f),15, 0)
+            
+            if rtn==0:
+                domain = (0,frame0.shape[0] - 1,0,frame0.shape[1] - 1)
+                if OutWindow and OutWindow.display:
+                    OutWindow.textboxprocess.insert('0.0',str(cnt)+': black\n')
+                else:
+                    file.write(f'{cnt} 0,0\n')
+            elif rtn=='q':
+                break
             else:
-                file.write('0, 0\n')
-        elif rtn=='q':
-            break
-        else:
-            frame_show = frame.copy()
-            domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
-            if OutWindow and OutWindow.display:
-                frame_show = cv.circle(frame_show, middle_point(domain), 1, (0,0,255))
-                if my_show(frame_show):
-                    break
-                if my_show(dcut(frame_show, domain)):
-                    break
-                OutWindow.textboxprocess.insert('0.0',str(cnt)+': '+print_mid_point(domain) + '\n')
-            else:
-                file.write(print_mid_point(domain) + '\n')
+                frame_show = frame.copy()
+                domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
+                if OutWindow and OutWindow.display:
+                    frame_show = cv.circle(frame_show, middle_point(domain), 1, (0,0,255))
+                    if my_show(frame_show):
+                        break
+                    if my_show(dcut(frame_show, domain)):
+                        break
+                    OutWindow.textboxprocess.insert('0.0',str(cnt)+': '+print_mid_point(domain) + '\n')
+                else:
+                    file.write(f'{cnt} {print_mid_point(domain)}\n') # standard format
+            bar()
+
     file.close()
     
     showinfo('', '请提取后点颜色，确定按回车')
@@ -233,38 +225,42 @@ def main_color(cap,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
     success = 1
     cnt = 0
     file = open('out-color-2.txt','w')
-    while success:
-        success, frame = cap.read()
-        if not success:
-            break
-        cnt += 1
-        if skip_n > 1 and cnt % skip_n != 1:
-            continue
-        progressBar['value'] = cnt + num
-        root.update()
+    with alive_bar(math.ceil(num/skip_n)) as bar:
+        while success:
+            success, frame = cap.read()
+            if not success:
+                break
+            cnt += 1
+            frame = expand(frame,pm)
+            if skip_n > 1 and cnt % skip_n != 1:
+                continue
+            progressBar['value'] = cnt + num
+            root.update()
 
-        domain = [max(x,0) for x in domain]
-        rtn, rect = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],list(midval_b),15, 0)
-        if rtn==0:
-            domain = (0,frame0.shape[0],0,frame0.shape[1])
-            if OutWindow and OutWindow.display:
-                OutWindow.textboxprocess.insert('0.0',str(cnt)+': '+'black\n')
+            domain = [max(x,0) for x in domain]
+            rtn, rect = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],list(midval_b),15, 0)
+            if rtn==0:
+                domain = (0,frame0.shape[0],0,frame0.shape[1])
+                if OutWindow and OutWindow.display:
+                    OutWindow.textboxprocess.insert('0.0',str(cnt)+': '+'black\n')
+                else:
+                    file.write(f'{cnt} 0,0\n')
+            elif rtn=='q':
+                break
             else:
-                file.write('0, 0\n')
-        elif rtn=='q':
-            break
-        else:
-            domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
-            if OutWindow and OutWindow.display:
-                frame_show = frame.copy()
-                frame_show = cv.circle(frame_show, middle_point(domain), 1, (0,0,255))
-                if my_show(frame_show):
-                    break
-                if my_show(dcut(frame_show, domain)):
-                    break
-                OutWindow.textboxprocess.insert('0.0',str(cnt)+': '+print_mid_point(domain) + '\n')
-            else:
-                file.write(print_mid_point(domain) + '\n')
+                domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
+                if OutWindow and OutWindow.display:
+                    frame_show = frame.copy()
+                    frame_show = cv.circle(frame_show, middle_point(domain), 1, (0,0,255))
+                    if my_show(frame_show):
+                        break
+                    if my_show(dcut(frame_show, domain)):
+                        break
+                    OutWindow.textboxprocess.insert('0.0',str(cnt)+': '+print_mid_point(domain) + '\n')
+                else:
+                    file.write(f'{cnt} {print_mid_point(domain)}\n') # standard format
+            bar()
+
     
     file.close()
     cv.destroyAllWindows() 
@@ -288,7 +284,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
     if r == None:
         return 'stop'
     track_window = (c, r, w, h)
-    print(track_window)
+    # print(track_window)
     frame = expand(frame,pm)
     roi = frame[r:r+h, c:c+w]
 
@@ -305,6 +301,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
 
     cap.set(cv.CAP_PROP_POS_FRAMES, 0) # 重置为第一帧
     
+    stdoutpb = Stdout_progressbar(num, not(OutWindow and OutWindow.display))
     cnt = 0
     progressBar['maximum'] = num
     # OutWindow.discontinue = False
@@ -318,6 +315,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
             OutWindow.textboxprocess.insert('0.0',"帧序号：[中心点坐标]\n")
         else:
             file = open('out-meanshift-1.txt','w')
+        stdoutpb.reset(skip_n)
         while(True):
             # 4.2 获取每一帧图像
             
@@ -334,7 +332,8 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
                 if OutWindow and OutWindow.display:
                     OutWindow.textboxprocess.insert("0.0",str(cnt) + ': [' + print_mid_point((y, y+h, x, x+w)) + ']\n')
                 else:
-                    file.write(print_mid_point((y, y+h, x, x+w)) + '\n')
+                    file.write(f'{cnt} {print_mid_point((y, y+h, x, x+w))}\n') # standard format
+                    # file.write(print_mid_point((y, y+h, x, x+w)) + '\n')
 
                 # 4.3 计算直方图的反向投影
                 hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -351,9 +350,8 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
                     rtn = my_show(img2,OutWindow.ratio,midPoint((x, y), (x + w, y + h)), 60)
                     if rtn == 1:
                         return 'stop'
-                else:
-                    pass
                 
+                stdoutpb.update(cnt)
             else:
                 break
     else:
@@ -363,6 +361,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
             OutWindow.textboxprocess.insert('0.0',"闪光帧序号：\n")
         else:
             file = open('out-meanshift-2.txt','w')
+        stdoutpb.reset(skip_n)
         while(True):
             # 4.2 获取每一帧图像
             
@@ -379,7 +378,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
                 if OutWindow and OutWindow.display:
                     OutWindow.textboxprocess.insert("0.0",str(cnt) + ': [' + print_mid_point((y, y+h, x, x+w)) + ']\n')
                 else:
-                    file.write(print_mid_point((y, y+h, x, x+w)) + '\n')
+                    file.write(f'{cnt} {print_mid_point((y, y+h, x, x+w))}\n') # standard format
 
                 # 4.3 计算直方图的反向投影
                 hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -395,9 +394,8 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
                     
                     if my_show(img2,OutWindow.ratio,midPoint((x, y), (x + w, y + h)), 60):
                         return 'stop'
-                else:
-                    pass
                 
+                stdoutpb.update(cnt)
             else:
                 break
     cv.destroyAllWindows()
@@ -595,7 +593,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
             printb('now_pos:' + str(now_pos), OutWindow)
         else:
             # file.write(f'{cnt} {str(now_pos).replace("(","").replace(")","")}\n')
-            file.write(f'{cnt} {now_pos[0]},{now_pos[1]}\n')
+            file.write(f'{cnt} {now_pos[0]},{now_pos[1]}\n') # standard format
 
         stdoutpb.update(cnt)
         
@@ -684,8 +682,8 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,tu
     border = 40
     if num < 10:
         domain = (0, frame0.shape[0], 0, frame0.shape[1])
-        file_center.write('0, 0\n')
-        file_theta.write('0\n')
+        # file_center.write('0, 0\n')
+        # file_theta.write('0\n')
     else:
         domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
         if domain[0] < 0:
@@ -694,12 +692,14 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,tu
             domain[2] = 0
         if OutWindow and OutWindow.display:
             printb(f'angle:',angle)
-        file_theta.write(str(round(angle,2))+'\n')  
-        file_center.write(print_mid_point(domain)+'\n')  
+        # file_theta.write(str(round(angle,2))+'\n')  
+        # file_center.write(print_mid_point(domain)+'\n')  
+    stdoutpb = Stdout_progressbar(frame_num, not(OutWindow and OutWindow.display))
     progressBar['maximum'] = frame_num
     success = 1
     cnt = 0
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
+    stdoutpb.reset(skip_n)
     while success:
         success, frame = cap.read()
         if not success:
@@ -727,8 +727,8 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,tu
             if OutWindow and OutWindow.display:
                 OutWindow.textboxprocess.insert('0.0', f'(0, 0)  0\n')
             else:
-                file_center.write('0, 0\n')
-                file_theta.write('0\n')
+                file_center.write(f'{cnt} 0,0\n')
+                file_theta.write(f'{cnt} 0\n')
             continue
         domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
         if domain[0] < 0:
@@ -738,8 +738,9 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,tu
         if OutWindow and OutWindow.display:
             OutWindow.textboxprocess.insert('0.0', f'({print_mid_point(domain)})  {round(angle,2)}\n')
         else:
-            file_theta.write(str(round(angle,2))+'\n')
-            file_center.write(print_mid_point(domain)+'\n')
+            file_center.write(f'{cnt} {print_mid_point(domain)}\n')
+            file_theta.write(f'{cnt} {round(angle,2)}\n')
+        stdoutpb.update(cnt)
         
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.insert('检测完成，展示模式不修改数据\n')
@@ -757,7 +758,7 @@ class FakeMs:
         self.cnt += 1
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture(r"C:\Users\songy\Videos\DSC_2059.MOV")
+    cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\DSC_2059.MOV")
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -780,5 +781,10 @@ if pstatus == "debug":
             
         def close(self):
             self.master.destroy()
+            
     if __name__ == '__main__':
-        feature(cap,'front',root=FakeMs(),OutWindow=None,progressBar=dict())
+        # tier = Tk()
+        # window = OutputWindow(tier)
+        # window.display = 1
+        main_color(cap,root=FakeMs(),OutWindow=None,progressBar=dict(),skip_n=10)
+        # tier.mainloop()
