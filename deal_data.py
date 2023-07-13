@@ -6,6 +6,7 @@ from tkinter.messagebox import showinfo
 from scipy import interpolate
 import matplotlib.pyplot as plt
 import utils
+import plot
 from parse_data import DataParser, f2sec
 from signals import black_sign
 import matplotlib
@@ -58,8 +59,8 @@ def show_der(points, tList):
     plt.show()
 
 class Dealer(DataParser):
-    def __init__(self,fps=60,filename=None,root=None,progressBar=None,markstr=None,plot_tool='plt') -> None:
-        super().__init__(fps)
+    def __init__(self,fps=60,filename=None,root=None,progressBar=None,markstr=None,skip_n=1,plot_tool='plt') -> None:
+        super().__init__(fps=fps,skip_n=skip_n)
         self.root = root
         self.progressBar = progressBar
 
@@ -152,6 +153,10 @@ class Dealer(DataParser):
                 pf = pf + 1
         return frame_sections
     
+    def horizontal(self,left,right,value=0):
+        x,y = [left, right],[value,value]
+        plt.plot(x,y,color='black')
+    
     """@depricated another form of frame_segment"""
     def frame_segment_2(self):
         frame_sections = [] # 所有刺激包括的帧, 按照stimulate
@@ -178,19 +183,24 @@ class Dealer(DataParser):
             # plt.figure()
             # num_stimulate = len(self.stimulus)
             f.write('frame_num: angle(deg)')        
+            # print(self.durings)
+            # print(self.frames[self.durings[0]])
             for i, sti_ls in enumerate(self.durings):
+                sti_i = np.argmin(abs(self.frames[sti_ls] - self.stimulus[i]))
                 # subplot(1,num_stimulate,i)
                 # plt.subplot(int(f'{num_stimulate}1{i}'))
                 plt.figure(f'pAngle-{i}')
                 plt_x = []
                 plt_y = []
                 f.write(f'\nstimulus {i} ({len(sti_ls)} frames):\n')
-                for pf in sti_ls:
+                for j, pf in enumerate(sti_ls):
+                    pf = int(pf)
                     x = self.frames[pf]
                     theta = self.Theta[pf]
-                    if x in self.stimulus:
+                    # if x in self.stimulus:
+                    if j == sti_i:
                         f.write(f'{x:3d}: {theta:.6f} (stimulate)\n')
-                        plt.scatter(x,theta,c='y')
+                        plt.scatter(x,theta,c='r')
                     else:
                         f.write(f'{x:3d}: {theta:.6f}\n')
                     plt_x.append(x)
@@ -199,7 +209,7 @@ class Dealer(DataParser):
                 plt.xlabel('number of frame')
                 plt.ylabel('angle(deg)')
                 plt.title('angle curve')
-                plt.savefig(f'fig\pAngle-stimulus{i}.png')
+                plt.savefig(f'fig\pAngle-stimulus{i+1}.png')
                 plt.show()
                     
             # plt.show()
@@ -213,7 +223,7 @@ class Dealer(DataParser):
         plt.figure('pAngle-interp')
         # plt.subplot(122)
         begin = 0
-        end = len(self.frames)
+        end = np.max(self.frames) # 包括所有帧
         num = (end-begin)*10
         x_base = np.linspace(begin, end, num)
         y_curve = interpolate_b_spline(self.frames,self.Theta,x_base,der=0)
@@ -224,7 +234,7 @@ class Dealer(DataParser):
         self.interp_x = x_base
         
         """to be changed"""
-        self.segment(-20,20)
+        self.segment(np.min(y_curve)-10,np.max(y_curve)+10)
         plt.xlabel('number of frame')
         plt.ylabel('angle(deg)')
         plt.title('interpolate angle curve')
@@ -241,15 +251,15 @@ class Dealer(DataParser):
         plt.show()
         
     def showOmega(self,fps):
-        self.adj = []
-        for i in range(len(self.frames)):
-            if i == 0:
-                self.adj.append(0)
-            elif self.frames[i] == self.frames[i-1]+1:
-                self.adj.append(1)
-            else:
-                self.adj.append(0)
-        
+        # self.adj = []
+        # for i in range(len(self.frames)):
+        #     if i == 0:
+        #         self.adj.append(0)
+        #     elif self.frames[i] == self.frames[i-1]+1:
+        #         self.adj.append(1)
+        #     else:
+        #         self.adj.append(0)
+        move_flag = True if len(self.X1) > 0 else False
         plt.figure('pOmega')
         omega_center = 0
         omega_front = 0
@@ -258,33 +268,40 @@ class Dealer(DataParser):
         omega_min = pi/2
         omega_max = -pi/2
         flag = 0
-        stimulate = 0
+        stimulate = 0 # 滑动计数方式
+        i_stimulus = np.argmin(np.abs(self.frames - self.stimulus[stimulate]))
+        # print(i_stimulus)
+        # print(self.stimulus[stimulate])
+        # print(self.frames)
+        # exit(0)
         if self.root:
-            self.progressBar['maximum'] = self.stimulus[-1]
-        for i in range(len(self.adj)):
+            self.progressBar['maximum'] = round(self.stimulus[-1] / self.skip_n)
+        
+        max_f = 0
+        for i in range(len(self.frames_adj)-1):
+            f = self.frames[i]
             
             if self.root:
                 self.progressBar['value'] = i
                 self.root.update()
             
-            if self.adj[i] and self.adj[i-1]:
+            if self.frames_adj[i] and self.frames_adj[i+1]:
                 
+                omega_center = (self.Theta[i+1] - self.Theta[i]) / fps
+                if move_flag: # 可以计算摆动角速度
+                    omega_front = self.calc_1(i+1)
+                    omega_back = self.calc_2(i+1)
+            elif self.frames_adj[i]:
                 omega_center = (self.Theta[i] - self.Theta[i-1]) / fps
-                omega_front = self.calc_1(i)
-                omega_back = self.calc_2(i)
-            
-            elif self.adj[i]:
-                
-                omega_center = (self.Theta[i] - self.Theta[i-1]) / fps
-                omega_front = 0
-                omega_back = 0
-                
+                if move_flag:
+                    omega_front = 0
+                    omega_back = 0
             else:
-                
                 omega_center = 0
-                omega_front = 0
-                omega_back = 0
-                
+                if move_flag:
+                    omega_front = 0
+                    omega_back = 0
+                    
             omega_move = omega_front+omega_back-2*omega_center
             if omega_move > omega_max:
                 omega_max = omega_move
@@ -295,29 +312,47 @@ class Dealer(DataParser):
             if omega_center < omega_min:
                 omega_min = omega_center
             
-            if stimulate==len(self.stimulus):
-                break
+            if i == i_stimulus:
+                if stimulate == 0:
+                    if move_flag:
+                        plt.scatter(f,omega_move,c='#4AC298',label=f'stimulus frame',zorder=100)
+                    plt.scatter(f,omega_center,c='r',label=f'stimulus frame',zorder=100)
+                    
+                else:
+                    if move_flag:
+                        plt.scatter(f,omega_move,c='#4AC298',zorder=100)
+                    plt.scatter(f,omega_center,c='r',zorder=100)
+                # self.pOmega.circle(i,omega_center,size=10, line_color="white", fill_color="red", fill_alpha=0.5)
+                # self.pOmega.circle(i,omega_move,size=10, line_color="white", fill_color="#4AC298", fill_alpha=0.5)
+            
             if flag == 0:
-                if f2sec(i - self.stimulus[stimulate],fps) > -0.5:
+                if f2sec(f - self.stimulus[stimulate],fps) > -0.5:
                     flag = 1
-                    plt.scatter(i,omega_center,c='b')
-                    plt.scatter(i,omega_move,c='green')
+                    if stimulate == 0:
+                        if move_flag:
+                            plt.scatter(f,omega_move,c='green',label='omega_move')
+                        plt.scatter(f,omega_center,c='b',label='omega_center')
+                    else:
+                        if move_flag:
+                            plt.scatter(f,omega_move,c='green')
+                        plt.scatter(f,omega_center,c='b')
                     # self.pOmega.circle(i,omega_center,size=10, line_color="white", fill_color="blue", fill_alpha=0.5)
                     # self.pOmega.circle(i,omega_move,size=10, line_color="white", fill_color="green", fill_alpha=0.5)
                     
             else:
-                if f2sec(i - self.stimulus[stimulate],fps) > 4.5:
+                if f2sec(f - self.stimulus[stimulate],fps) > 4.5:
                     flag = 0
                     stimulate+=1
-                elif abs(i - self.stimulus[stimulate]) < 2:
-                    plt.scatter(i,omega_center,c='r')
-                    plt.scatter(i,omega_move,c='#2D755C')
-                    # self.pOmega.circle(i,omega_center,size=10, line_color="white", fill_color="red", fill_alpha=0.5)
-                    # self.pOmega.circle(i,omega_move,size=10, line_color="white", fill_color="#2D755C", fill_alpha=0.5)
+                    if stimulate==len(self.stimulus):
+                        max_f = f
+                        break
+                    i_stimulus = np.argmin(np.abs(self.frames - self.stimulus[stimulate]))
+                    # print(i_stimulus)
                     
                 else:
-                    plt.scatter(i,omega_center,c='b')
-                    plt.scatter(i,omega_move,c='green')
+                    if move_flag:
+                        plt.scatter(f,omega_move,c='green')
+                    plt.scatter(f,omega_center,c='b')
                     # self.pOmega.circle(i,omega_center,size=10, line_color="white", fill_color="blue", fill_alpha=0.5)
                     # self.pOmega.circle(i,omega_move,size=10, line_color="white", fill_color="green", fill_alpha=0.5)
                     
@@ -327,6 +362,9 @@ class Dealer(DataParser):
         plt.ylabel('angular speed(deg/s)')
         plt.title('turning omega curve')
         self.segment(omega_min,omega_max)
+        self.horizontal(0,max_f)
+        # plt.legend(bbox_to_anchor=(1.05,0), loc=3, borderaxespad=0)
+        plt.legend()
         # output_file(filename="res_Angular_speed.html", title="angular speed result")
         # save(self.pOmega)
         # show(self.pOmega)
@@ -345,11 +383,12 @@ class Dealer(DataParser):
         
     def showPath(self,):
         plt.figure('pPath')
-        print(len(self.frames))
+        # print(len(self.frames))
         flag = 1 if len(self.X1) > 0 else 0 # if front and back path can be drawn
 
         
-        cbar = utils.colorbar(gradient_length=len(self.stimulus))
+        cbar = plot.colorbar_between_two(length=len(self.stimulus))
+        # print(cbar)
         # print('self.frames',self.frames)
         # print('self.stimulus',self.stimulus)
         # print('self.durings',self.durings)
@@ -358,16 +397,16 @@ class Dealer(DataParser):
             """ 距离刺激帧最近的一帧 """
             idx = np.argmin(np.abs(self.frames - f))
 
-            plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=tuple(cbar[i]))
+            plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=tuple(cbar[i]),zorder=100)
             if flag:
-                plt.scatter(self.X1[idx], self.Y1[idx], color=tuple(cbar[i]))
-                plt.scatter(self.X2[idx], self.Y2[idx], color=tuple(cbar[i]))
+                plt.scatter(self.X1[idx], self.Y1[idx], color=tuple(cbar[i]),zorder=100)
+                plt.scatter(self.X2[idx], self.Y2[idx], color=tuple(cbar[i]),zorder=100)
 
         # for i,frame in enumerate(self.frames):
         #     if self.minDis(frame) < 1:
         #         print(frame)
         #         print(self.X_mid[i],self.Y_mid[i])
-        #         plt.scatter(self.X_mid[i][1], self.Y_mid[i][1],c='r')
+        #         plt.scatter(self.X_mid[i], self.Y_mid[i],c='r')
         #         if flag:
         #             plt.scatter(self.X1[i], self.Y1[i], c='r')
         #             plt.scatter(self.X2[i], self.Y2[i], c='r')
@@ -379,6 +418,8 @@ class Dealer(DataParser):
         plot_xmid = [self.X_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
         plot_ymid = [self.Y_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
         plt.plot(plot_xmid, plot_ymid,c='b',label='mid')
+        plt.scatter(plot_xmid[0], plot_ymid[0], color='#FA9A3F', s=50, marker='*', label='start', zorder=50)
+        plt.scatter(plot_xmid[-1], plot_ymid[-1], color='#49DBF5', s=50, marker='*', label='end', zorder=50)
         if flag:
             plot_xf = [self.X1[i] for i in range(self.num) if self.in_range(self.frames[i])]
             plot_yf = [self.Y1[i] for i in range(self.num) if self.in_range(self.frames[i])]
@@ -387,8 +428,14 @@ class Dealer(DataParser):
         
             plt.plot(plot_xf,plot_yf,c='green',label='front')
             plt.plot(plot_xb,plot_yb,c='purple',label='back')
+            plt.scatter(plot_xf[0], plot_yf[0], color='#FA9A3F', s=50, marker='*', zorder=50)
+            plt.scatter(plot_xb[0], plot_yb[0], color='#FA9A3F', s=50, marker='*', zorder=50)
+            plt.scatter(plot_xf[-1], plot_yf[-1], color='#49DBF5', s=50, marker='*', zorder=50)
+            plt.scatter(plot_xb[-1], plot_yb[-1], color='#49DBF5', s=50, marker='*', zorder=50)
+                        
         plt.xlabel(f'x({self.str_scale})')
         plt.ylabel(f'y({self.str_scale})')
+        # plt.legend(bbox_to_anchor=(1.05,0), loc=3, borderaxespad=0)
         plt.legend()
         plt.title('path curve')
         plt.savefig('fig\pPath.png')
@@ -403,12 +450,16 @@ class Dealer(DataParser):
                 if flag: x1 = self.X1[indice]; y1 = self.Y1[indice]; x2 = self.X2[indice]; y2 = self.Y2[indice]; plt.plot(x1,y1,c='green',label='front'); plt.plot(x2,y2,c='purple',label='back')
                 
                 idx = np.argmin(np.abs(self.frames - self.stimulus[i])) # 标记刺激帧的下标
+                # print(indice)
+                # print(idx)
+                
                 plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=(1,0,0))
                 if flag:
                     plt.scatter(self.X1[idx], self.Y1[idx], color=(1,0,0))
                     plt.scatter(self.X2[idx], self.Y2[idx], color=(1,0,0))
                 plt.xlabel(f'x({self.str_scale})')
                 plt.ylabel(f'y({self.str_scale})')
+                # plt.legend(bbox_to_anchor=(1.05,0), loc=3, borderaxespad=0)
                 plt.legend()
                 plt.title(f'path curve: stimulus{i+1}')
                 plt.savefig(f'fig\pPath_{i+1}.png')
@@ -420,17 +471,20 @@ class Dealer(DataParser):
         cnt1 = 0
         cnt2 = 0
         cnt3 = 0
+        # stdoutpb = utils.Stdout_progressbar(self.num-2)
+        # stdoutpb.reset()
         for i in range(len(self.X_mid) - 2):
-            if self.X_mid[i+2][0]-self.X_mid[i+1][0] == 1 and self.X_mid[i+1][0]-self.X_mid[i][0] == 1: # 连续三点
+            if self.frames_adj[i+1] and self.frames_adj[i]: # 连续三点
+            # if self.X_mid[i+2][0]-self.X_mid[i+1][0] == 1 and self.X_mid[i+1][0]-self.X_mid[i][0] == 1: # 连续三点
                 cnt1 += 1
-                d_s = sqrt((self.Y_mid[i+1][1]-self.Y_mid[i][1])**2 +(self.X_mid[i+1][1]-self.X_mid[i][1])**2)
+                d_s = sqrt((self.Y_mid[i+1]-self.Y_mid[i])**2 +(self.X_mid[i+1]-self.X_mid[i])**2)
                 d_thres = 0.001*self.out_ratio if self.out_ratio > 0 else 0.001
                 if d_s > d_thres:
                     cnt2 += 1
-                    alpha1 = (atan((self.Y_mid[i+2][1] - self.Y_mid[i+1][1]) / (self.X_mid[i+2][1] - self.X_mid[i+1][1])) 
-                            if abs(self.X_mid[i+2][1] - self.X_mid[i+1][1]) > d_thres else pi/2)
-                    alpha2 = (atan((self.Y_mid[i+1][1] - self.Y_mid[i][1]) / (self.X_mid[i+1][1] - self.X_mid[i][1])) 
-                            if abs(self.X_mid[i+1][1] - self.X_mid[i][1]) > d_thres else pi/2)
+                    alpha1 = (atan((self.Y_mid[i+2] - self.Y_mid[i+1]) / (self.X_mid[i+2] - self.X_mid[i+1])) 
+                            if abs(self.X_mid[i+2] - self.X_mid[i+1]) > d_thres else pi/2)
+                    alpha2 = (atan((self.Y_mid[i+1] - self.Y_mid[i]) / (self.X_mid[i+1] - self.X_mid[i])) 
+                            if abs(self.X_mid[i+1] - self.X_mid[i]) > d_thres else pi/2)
                     d_alpha = alpha1 - alpha2
                     if d_alpha > 0.001:
                         cnt3 += 1
@@ -447,9 +501,13 @@ class Dealer(DataParser):
                     self.radius.append(0)
             else: # these three situation we can't calculate the radius, default 0
                 self.radius.append(0)
+            # stdoutpb.update(i+1)
+        # stdoutpb.update(-1)
+            
         assert len(self.radius) == self.num - 2, ValueError("Wrong Value")
         print('filter:',self.num, cnt1, cnt2, cnt3)
                 
+        # print(self.durings)
         """write file and plot simultaneously"""
         with open(f'results\Turning Radius {self.filename},{self.timestr}.txt','w') as f:
             f.write(f'frame_num: radius({self.str_scale})')        
@@ -457,13 +515,18 @@ class Dealer(DataParser):
                 plt.figure(f'pRadius-{i}')
                 plt_x = []
                 plt_y = []
+                sti_flag = 0
                 f.write(f'\nstimulus {i} ({len(sti_ls)} frames):\n')
-                for pf in sti_ls:
+                for pf in sti_ls: # pf代表下标idx
+                    pf = int(pf)
+                    if pf >= len(self.radius): # 最后两帧不算
+                        break
                     x = self.frames[pf]
                     r = self.radius[pf]
                     if x in self.stimulus:
                         f.write(f'{x:3d}: {r:.6f} (stimulate)\n')
-                        plt.scatter(x,r,c='r')
+                        plt.scatter(x,r,c='r',zorder=100) # 刺激标志放在最上层
+                        sti_flag = 1
                     else:
                         f.write(f'{x:3d}: {r:.6f}\n')
                     if r > 0:
@@ -474,12 +537,15 @@ class Dealer(DataParser):
                             pass
                         else:
                             plt.scatter(x,0,c='y')
+                if sti_flag == 0:
+                    plt.scatter(self.stimulus[i],0,c='r',zorder=100) # 解决跳读没有刺激标志的问题
+                    
                 # print(plt_x)
                 plt.plot(plt_x,plt_y,c='b')
                 plt.xlabel('number of frame')
                 plt.ylabel(f'radius({self.str_scale})')
                 plt.title('turning radius')
-                plt.savefig(f'fig\pRadius-stimulus{i}.png')
+                plt.savefig(f'fig\pRadius-stimulus{i+1}.png')
                 plt.show()
                     
             f.write('end\n\nall frames: \n')
@@ -495,17 +561,17 @@ class Dealer(DataParser):
 
 if pstatus == "debug":
     if __name__ == '__main__':
-        data_dealer = Dealer()
+        data_dealer = Dealer(60, skip_n=1)
         data_dealer.parse_light(open('out-light-every.txt','r'), 60)
-        # data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),60)
-        data_dealer.parse_fbpoints(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),60)
+        # data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
+        # data_dealer.parse_fbpoints(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),60)
         # data_dealer.data_change_ratio(0.012)
         # data_dealer.To_centimeter(0.012)
-        # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
-        data_dealer.showPath()
+        data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),60)
+        # data_dealer.showPath()
         # data_dealer.showCurve()
         # data_dealer.showAngle(30)
-        # data_dealer.showOmega(30)
+        data_dealer.showOmega(60)
     
 class Cheker:
     def __init__(self,cap,status) -> None:

@@ -16,7 +16,7 @@ def f2sec(n,fps): # 将帧数转化为秒
     return n / fps
 
 class DataParser:
-    def __init__(self, before=0.5, after=4.5, fps=60) -> None:
+    def __init__(self, before=0.5, after=4.5, fps=60, skip_n=1) -> None:
         self.X1 = []
         self.Y1 = []
         self.X2 = []
@@ -31,6 +31,7 @@ class DataParser:
         self.before = before
         self.after = after
         self.frames = [] # frame numbers
+        self.frames_adj = [] # adjacent to next frame
 
         self.light_frames = [] # all the frames when the light is on
         self.stimulus = [] # all the judged stimulate frame number
@@ -39,6 +40,7 @@ class DataParser:
         self.filekind = ''
         self.timestr = ''
         self.fps = fps
+        self.skip_n = skip_n
 
     """ change all scaler of data """
     def data_change_ratio(self, ratio):
@@ -72,7 +74,7 @@ class DataParser:
             for f in range(left, right+1):
                 if f in self.frames:
                     # sti_sections[-1].append(self.frames.index(f))
-                    idx = np.where(self.frames == f)[0]
+                    idx = np.where(self.frames == f)[0][0]
                     sti_sections[-1].append(idx)
         assert len(sti_sections) == len(self.stimulus), "Wrong Value"
         sti_sections = [np.array(x) for x in sti_sections] # 转为np.array，好用indice格式取数据
@@ -125,7 +127,7 @@ class DataParser:
         self.num1 = len(self.X1)
         self.num2 = len(self.X2)
         ''' 前点和后点的记录数应该都是有效读的帧数，因此...，frame可以只看其中一个'''
-        assert self.num1 == self.num2, "Wrong Data"
+        # assert self.num1 == self.num2, "Wrong Data"
         
         self.frames = []
         self.X_mid = []
@@ -163,10 +165,16 @@ class DataParser:
         
         """ 全部转为np.array """
         self.frames = np.array(self.frames)
+        self.num = len(self.frames)
+        assert self.num > 0, "Data error"
+        self.frames_adj= np.zeros((self.num-1,))
+        for i in range(self.num-1):
+            if self.frames[i+1] - self.frames[i] <= self.skip_n:
+                self.frames_adj[i] = 1
+        # self.frames_adj = np.where(np.array([self.frames[j+1]-self.frames[j] for j in range(self.num-1)]) <= self.skip_n)
         self.X1 = np.array(self.X1); self.Y1 = np.array(self.Y1); self.X2 = np.array(self.X2); self.Y2 = np.array(self.Y2)
         self.X_mid = np.array(self.X_mid); self.Y_mid = np.array(self.Y_mid)
         self.K = np.array(self.K); self.D = np.array(self.D); self.Theta = np.array(self.Theta)
-        self.num = len(self.frames)
         self.__available__ = ['X1','Y1','X2','Y2','X_mid','Y_mid','K','D','Theta','frames']
         self.durings = self.sti_segment()
 
@@ -217,9 +225,13 @@ class DataParser:
         self.Y_mid = np.array(self.Y_mid)[mask>0]
         self.Theta = np.array(self.Theta)[mask>0]
         self.frames = np.array(self.frames)[mask>0]
-
-        # showinfo(message='共检测到数据'+str(len(self.X_mid)))
         self.num = len(self.frames)
+        assert self.num > 0, "Data error"
+        self.frames_adj= np.zeros((self.num-1,))
+        for i in range(self.num-1):
+            if self.frames[i+1] - self.frames[i] <= self.skip_n:
+                self.frames_adj[i] = 1
+        # showinfo(message='共检测到数据'+str(len(self.X_mid)))
         self.__available__ = ['X_mid','Y_mid','Theta','frames']
         self.durings = self.sti_segment()
 

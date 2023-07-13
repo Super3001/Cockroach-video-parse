@@ -7,7 +7,16 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 ## Note：
 1. 如果蟑螂出镜了，或者被手挡住了，则那一段的检测结果可能会失效。请务必注意这一点。
 2. 标志点和环境没有明显颜色差异的，不要用color
-3. 
+3. 使用轮廓识别需要预先处理好背景图，可以利用“展示第一帧”功能导出第一帧图像，之后再进行抠图处理
+4. 使用轮廓识别不能输出摆动角速度
+5. 四种识别方法的比较
+
+| 方法 | 速度 | 应用场景 |
+| :--: | :--: | :--: |
+| meanshift | 快 | 
+| 颜色识别 | 较快 | 
+| 轮廓识别 | 较慢 | 
+| 标志点特征识别 | 较快 | 
 
 ## 功能实现：
 
@@ -19,16 +28,17 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 | feature | - | OK |
 
 | data object | change unit |
-| path
-| radius
-| angle
-| omega
+| :--: | :--: |
+| path | OK |
+| radius | OK |
+| angle | - |
+| omega | - |
 
 
 ## 代码特征：
 1. 传文件传文件句柄
 2. 中间文件和最终输出文件统一到一个格式（待完成）
-3. 统一用i或者idx表示下标，f或者frame表示帧数
+3. 统一用i或者idx（或者pf）表示下标，f或者frame表示帧数
 
 
 4. 记录数据的格式标准为int或者float一位小数（根据精度）. '{cnt} {value1,value2,...}'
@@ -37,8 +47,8 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 ## To do List:
 
 - [x] 输出转向角度angle, 
-- [ ] 转向角速度omega_t, 摆动角速度omega_s,
-- [ ] angle_interp...
+- [x] 转向角速度omega_t, 摆动角速度omega_s,
+- [x] angle_interp...
 - [x] 转弯半径radius
 - [x] 转向半径单位：米
 - [x] main window size(change)
@@ -48,24 +58,30 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 - [x] put ResWindow on the front
 - [x] show angle first frame be 0?
 - [x] resolve the error occurred when loading a video
-- [ ] main window size not stable?
-- [ ] sequence of plots
+- [x] main window size not stable?
+- [x] sequence of plots
 - [ ] tract point show output to out_window
 - [ ] add cut_edge when tracting points
 - [x] check if the multiple process is OK
-- [ ] complete feature_detection
+- [x] complete feature_detection
 - [x] rewrite prompt(select_window)
-- [ ] solve the filename problem
+- [x] solve the filename problem
 - [x] change to the dynamic threshold for radius
-- [ ] choice: timestamp should be the time when detecting goes or data_dealing(result_viewing)?
-- [ ] add detecting_mark_str record
+- [ ] choice: timestamp should be the time when detecting goes or data_dealing(result_viewing):
+
+    目前是跟着ResWindow走的
+
+- [x] add detecting_mark_str record
 - [x] refresh property when loading a new video
-- [ ] regular imports?
+- [x] regular imports:
+
+    except for tkinterUI.py
+
 - [x] add "release" and "debug" mode to all files
 - [x] os.makedir
 - [x] regular output file path
 - [x] plt.figure(x) - regular figure name
-- [ ] delete bokeh-format codes
+- [-] delete bokeh-format codes
 - [x] put pstatus in front of each file
 - [x] resolve the problem of "can't go plt.show()"
 - [ ] function: load_last_result
@@ -85,8 +101,8 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 - [x] central-control mode ["release","debug"]
 - [ ] Dynamic window size
 - [x] update display_window
-- [ ] write about *minis*, balance accuracy with time
-- [ ] 读取过程缩放-功能实现（处理过程缩放）
+- [-] write about *minis*, balance accuracy with time
+- [x] 读取过程缩放-功能实现（处理过程缩放）
 - [x] 处理过程中写文件，要把帧数写上，以适应skip read功能
 - [x] 把deal_with_data拆分为parse_data和deal_data两个文件
 - [x] 是否需要parse data过程中都带着frame number -> 所有的数据都进行有效化（
@@ -99,7 +115,9 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 - [x] 数据np.array化
 - [ ] 放大的选点/选颜色
-- [ ] 把QtUI去掉
+- [x] 把QtUI去掉
+- [ ] userlog(?)
+- [ ] color 和 feature的提取过程展示
 
 
 

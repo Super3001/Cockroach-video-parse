@@ -1,1 +1,1 @@
-self.tier2 = Tk()
+100

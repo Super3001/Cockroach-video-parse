@@ -1,5 +1,6 @@
 import cv2 as cv
-from tract_point import *
+from tract_point import Tractor
+from processing import my_show
 from control import pstatus
 from utils import Stdout_progressbar
 
@@ -43,17 +44,24 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150):
             if max_value > thres:
                 if OutWindow and OutWindow.display:
                     OutWindow.textboxprocess.insert("0.0","%d\n" % cnt)
-                """使用帧数进行记录"""
-                file.write(f'{cnt}\n')
-                # file.write('1\n')
+                    frame_show = frame.copy()
+                    cv.rectangle(frame_show, (domain[2]-20,domain[0]-20),(domain[3]+20,domain[1]+20),(0,0,255),2)
+                    if my_show(frame_show):
+                        return 'stop'
+                    """使用帧数进行记录"""
+                else:
+                    file.write(f'{cnt}\n')
             else:
-                # file.write('0\n')
-                pass
+                frame_show = frame.copy()
+                cv.rectangle(frame_show, (domain[2]-20,domain[0]-20),(domain[3]+20,domain[1]+20),(255,0,0),2)
+                if my_show(frame_show):
+                    return 'stop'
             stdoutpb.update(cnt)
 
         else:
             stdoutpb.update(-1)
             break
+    return 'OK'
         
 if pstatus == "debug":
     class FakeMs:

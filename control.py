@@ -1,4 +1,4 @@
 # control.py
 
-# pstatus = "release"
-pstatus = "debug"
+pstatus = "release"
+# pstatus = "debug"

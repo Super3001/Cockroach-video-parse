@@ -12,7 +12,7 @@ def timestr():
     # return datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
 
 class Stdout_progressbar:
-    def __init__(self, max_num, show, max_length=50) -> None:
+    def __init__(self, max_num, show=True, max_length=50) -> None:
         interval = math.ceil(max_num / max_length)
         length = math.ceil(max_num / interval)
         

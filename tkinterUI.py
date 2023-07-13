@@ -140,6 +140,7 @@ class APP:
             self.Ratio_to_cm = 0.0308
             self.timestr = utils.timestr()
             self.detect_mark_str = f'{self.status}-{self.timestr}'
+            self.skip_num = 5
         else:
             self.status = None
             self.light = 0
@@ -149,13 +150,14 @@ class APP:
             self.Ratio_to_cm = 0
             self.timestr = None
             self.detect_mark_str = None
+            self.skip_num = 1
+            
         self.output_window = None
         self.first_middle_point = (-1,-1)
         self.pm = 1
         self.rm = 1
         self.master.geometry('1200x700+50+50') # 失效？
         self.tier2 = None
-        self.skip_num = 1
 
         
     def quit(self):
@@ -191,7 +193,7 @@ class APP:
         if self.cap == None:
             tkinter.messagebox.showinfo(message=msg_NoVideo)
             return
-        self.bodyLength, self.measure, self.first_middle_point = Magnify(self.cap)
+        self.bodyLength, self.measure, self.first_middle_point = Magnify(self.cap, self.master)
         self.Ratio_to_cm = self.bodyLength / self.measure
         self.magRatio = View*self.bodyLength / self.measure
         if self.output_window and self.output_window.display:
@@ -200,7 +202,7 @@ class APP:
                                     f'or 1 px : {self.Ratio_to_cm:.4f}cm')
         self.Ratio_to_m = self.magRatio*0.001
         # self.show_first_frame()
-        self.master.geometry('1200x700+50+50')
+        # self.master.geometry('1200x700+50+50')
         
     def stop_magnify(self):
         self.magRatio = 0
@@ -321,13 +323,17 @@ class APP:
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
         tkinter.messagebox.showinfo(message='请点击灯的位置，然后回车')
-        tractLight(self.cap,self.master,self.output_window,self.progressbar)
-        tkinter.messagebox.showinfo(message='闪光提取完成')
+        rtn_ = tractLight(self.cap,self.master,self.output_window,self.progressbar)
+        if rtn_ == 'OK':
+            tkinter.messagebox.showinfo(message='闪光提取完成')
+        else:
+            tkinter.messagebox.showinfo(message='提取过程中止，展示模式不记录数据')
         self.light = 1
         self.refresh()
         
     def view_result(self):  
-        data_dealer = Dealer(self.fps, f'{self.filename} {self.status}',self.master,self.progressbar,self.detect_mark_str)
+        data_dealer = Dealer(self.fps, f'{self.filename} {self.status}',self.master,self.progressbar,self.detect_mark_str,self.skip_num)
+        self.dealer = data_dealer
         data_dealer.To_origin()
         if self.light:
             file_light = open('out-light-every.txt','r')
@@ -369,6 +375,8 @@ class APP:
             if not os.path.exists(directory_name):
                 os.mkdir(directory_name)
         
+        self.show_result()
+        
         tier1 = Tk()
         result_window = ResWindow(tier1,data_dealer)
         tier1.mainloop()
@@ -395,6 +403,10 @@ class APP:
         finally:
             self.dialog.destroy()
 
+    def show_result(self):
+        # tkinter.messagebox.showinfo(message='共提取到%d帧信息，%d次有效刺激' % (len(self.dealer.Theta),len(self.dealer.lighttime)))
+        tkinter.messagebox.showinfo(message='共提取到 %d帧信息，%d帧有效信息，%d次有效刺激' % (self.dealer.num1, self.dealer.num, len(self.dealer.stimulus)))
+
     def go_help(self):
         # 放一个演示视频
         pass
@@ -417,11 +429,6 @@ class ResWindow:
         button4 = Button(master, text='返回', width=20, font=('GB2312', 18), background='Tan', command=master.destroy)
         button4.grid(row=3, column=0, sticky=W)
         
-        self.show()
-        
-    def show(self):
-        # tkinter.messagebox.showinfo(message='共提取到%d帧信息，%d次有效刺激' % (len(self.dealer.Theta),len(self.dealer.lighttime)))
-        tkinter.messagebox.showinfo(message='共提取到 %d帧信息，%d帧有效信息，%d次有效刺激' % (self.dealer.num1, self.dealer.num, len(self.dealer.stimulus)))
  
     def show_angle(self):
         self.dealer.showAngle(self.dealer.fps)

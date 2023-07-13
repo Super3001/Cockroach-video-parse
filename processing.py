@@ -1,4 +1,5 @@
-import cv2 as cv 
+import cv2 as cv
+from tkinter.messagebox import showinfo, showerror 
 from tract_point import *
 import numpy as np
 import math
@@ -159,6 +160,8 @@ def main_color(cap,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
     Trc.set("mutiple",pm)
     showinfo('','请提取前点颜色，确定按回车')
     midval_f = Trc.tract_color(frame0)
+    if midval_f[0] == -1:
+        return 'stop'
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.delete('0.0','end')
         OutWindow.textboxprocess.insert('0.0','前点颜色(BGR)'+str(midval_f))
@@ -200,7 +203,7 @@ def main_color(cap,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
                 frame_show = frame.copy()
                 domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
                 if OutWindow and OutWindow.display:
-                    frame_show = cv.circle(frame_show, middle_point(domain), 1, (0,0,255))
+                    frame_show = cv.circle(frame_show, middle_point(domain), 2, (0,0,255))
                     if my_show(frame_show):
                         break
                     if my_show(dcut(frame_show, domain)):
@@ -214,6 +217,8 @@ def main_color(cap,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
     
     showinfo('', '请提取后点颜色，确定按回车')
     midval_b = Trc.tract_color(frame0)    
+    if midval_b[0] == -1:
+        return 'stop'
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.delete('0.0','end')
         OutWindow.textboxprocess.insert('0.0','后点颜色(BGR)'+str(midval_b))
@@ -251,7 +256,7 @@ def main_color(cap,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
                 domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
                 if OutWindow and OutWindow.display:
                     frame_show = frame.copy()
-                    frame_show = cv.circle(frame_show, middle_point(domain), 1, (0,0,255))
+                    frame_show = cv.circle(frame_show, middle_point(domain), 2, (0,0,255))
                     if my_show(frame_show):
                         break
                     if my_show(dcut(frame_show, domain)):
@@ -358,7 +363,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
         if OutWindow and OutWindow.display:
             OutWindow.lift()
             # OutWindow.textboxprocess.delete('0.0','end')
-            OutWindow.textboxprocess.insert('0.0',"闪光帧序号：\n")
+            OutWindow.textboxprocess.insert('0.0',"帧序号：[中心点坐标]\n")
         else:
             file = open('out-meanshift-2.txt','w')
         stdoutpb.reset(skip_n)
@@ -368,7 +373,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
             ret, frame = cap.read()
             if ret == True:
                 cnt += 1
-                if skip_n > 1 and cnt % skip_n != 0:
+                if skip_n > 1 and cnt % skip_n != 1:
                     continue
                 progressBar['value'] = cnt
                 root.update()
@@ -415,7 +420,7 @@ def middle_point(rect:list):
     y = (rect[0]+rect[1])//2
     return (y,x)
     
-def Magnify(cap):
+def Magnify(cap, root):
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     ret, frame0 = cap.read()
     Trc = Tractor()
@@ -426,7 +431,7 @@ def Magnify(cap):
     Trc.tractPoint(frame0)
     point_b = Trc.gbPoint
     length = dist(point_f, point_b)
-    Trc.inputbox('请输入蟑螂的实际长度，单位：厘米')
+    Trc.inputbox(root=root,show_text='请输入蟑螂的实际长度，单位：厘米')
     body_length = eval(Trc.gbInput)
     # my_show(frame0, 50*body_length/length, midPoint(point_b,point_f))
     return body_length, length, midPoint(point_b,point_f)
@@ -546,6 +551,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     showinfo(message='请拖动选择初始矩形框，之后回车')
     rtn_ = Idf.select_window(frame0)
     if rtn_ == 'q':
+        printb('')
         return
     (x,y,w,h), minis = rtn_
     if OutWindow and OutWindow.display:
@@ -669,6 +675,8 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,tu
     file_theta = open('out-contour-theta.txt','w')
     file_center = open('out-contour-center.txt','w')
     r, h, c, w = Trc.select_rect(frame0)
+    if r == None:
+        return 'stop'
     domain = (r,r+h,c,c+w) # 上下左右
     cha = cv.subtract(edge(dcut(frame0,domain)),edge(dcut(background,domain)))
     # cha = cv.inRange(cha,120,255)

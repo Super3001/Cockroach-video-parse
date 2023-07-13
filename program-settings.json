@@ -7,13 +7,36 @@
         }
 
     },
+    "show":{
+        "light show offset": {
+            "value":20,
+            "unit":"px"
+        },
+        "light show mode": {
+            "value":"frame",
+            "unit":"str",
+            "all":["frame","continuous"]
+        }
+    },
     "parsing":{
         "min stimulus interval": {
             "value": 0.5,
             "unit": "second"
         }
         
+    },
+    "other":{
+        "timestamp at": {
+            "value": "parsing time",
+            "unit": "str",
+            "all": [
+                "detecting time",
+                "parsing time",
+                "dealing time"
+            ]
+        }
     }
+
         
 
 }

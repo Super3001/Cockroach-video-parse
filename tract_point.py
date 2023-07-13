@@ -1,9 +1,5 @@
 import cv2
-from tkinter.messagebox import *
 import tkinter as tk
-import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QInputDialog, QLineEdit
-from PyQt5.QtGui import QIcon
 import numpy as np
 from utils import dcut
 
@@ -181,9 +177,11 @@ class Tractor:
     """changed"""
     def tract_color(self, frame):
         self.gbColor = [0,0,0]
-        cv2.imshow("windowName",frame)
-        cv2.setMouseCallback("windowName", self.pointColor, frame)
-        cv2.waitKey(0)
+        # cv2.imshow("windowName",frame)
+        # cv2.setMouseCallback("windowName", self.pointColor, frame)
+        # cv2.waitKey(0)
+        if monitor_show(frame, function=self.pointColor):
+            return (-1,-1,-1)
         # res = askyesno('Confirm',f'Color: {self.gbColor} \nconfirm?')
         # if res == 1:
         #     cv2.destroyAllWindows()
@@ -229,14 +227,36 @@ class Tractor:
         self.gbPoint = (x*self.mutiple, y*self.mutiple)
         return
                 
-    def inputbox(self,show_text):
+    """ @deprecated: using QtUI """
+    '''def inputbox(self,show_text):
         app = QApplication(sys.argv)
         ex = Inputbox()
         ex.getText(show_text)
         self.gbInput = ex.text
-        app.exit(0)
+        app.exit(0)'''
 
-class Inputbox(QWidget):
+    def inputbox(self, root, show_text):
+        self.gbInput = None # 防止得到错误的输入
+        input_window = tk.Toplevel(root)
+        self.input_window = input_window
+        
+        label = tk.Label(input_window, text=show_text)
+        label.pack()
+        
+        entry = tk.Entry(input_window)
+        entry.pack()
+        
+        # 创建按钮
+        button = tk.Button(input_window, text="提交", command=lambda: self.get_user_input(entry.get()))
+        button.pack()
+        input_window.mainloop()
+        return 1
+    
+    def get_user_input(self, s):
+        self.gbInput = s
+        self.input_window.quit()
+
+'''class Inputbox(QWidget):
         def __init__(self):
             super().__init__()
             self.title = '输入框'
@@ -255,7 +275,7 @@ class Inputbox(QWidget):
             self.text, okPressed = QInputDialog.getText(self, "Get text",show_text, QLineEdit.Normal, "")
             if okPressed and self.text != '':
                 print(self.text)
-                self.close()
+                self.close()'''
                 
 def conv2d(bitmap, kernal):
     if bitmap.shape[0] != kernal.shape[0]:
@@ -346,6 +366,7 @@ class Identifier:
     def select_window(self,frame):
         global minis
         if monitor_show(frame, function = self.mouse, container=self):
+            cv2.destroyAllWindows()
             return 'q'
         self.generate_kernal(kind='sin')
         self.K = K
