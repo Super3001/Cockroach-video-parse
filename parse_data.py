@@ -86,7 +86,7 @@ class DataParser:
         for i, t in enumerate(light_data):
             if i==0:
                 stimulus.append(t)
-            elif f2sec(t-light_data[i-1],fps) > 0.5:
+            elif f2sec(t-light_data[i-1],fps) > 1: # 间隔0.5s就算不同的刺激
                 stimulus.append(t)
         self.light_frames = light_data
         self.stimulus = stimulus

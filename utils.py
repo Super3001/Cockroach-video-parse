@@ -5,6 +5,7 @@ import psutil
 from pywinauto.application import Application
 import time, math
 import numpy as np
+import matplotlib.pyplot as plt
 
 def timestr():
     return time.strftime("%Y-%m-%d-%H-%M-%S", time.localtime())
@@ -55,16 +56,6 @@ class Stdout_progressbar:
             print("\nprecess finished!")
             print(f"totaly use {elapse:.1f}s")
             sys.stdout.flush()
-
-def colorbar(start_color = np.array([255, 0, 0]), end_color = np.array([255, 255, 0]), gradient_length = 100): # 红色，黄色
-    if gradient_length == 1:
-        return np.array([[1,0,0]])
-    gradient_colors = np.zeros((gradient_length, 3))
-    for i in range(gradient_length):
-        gradient_colors[i] = (1 - i/(gradient_length-1)) * start_color + (i/(gradient_length-1)) * end_color
-    gradient_colors = gradient_colors / 255
-    gradient_colors[gradient_colors>1] = 1
-    return gradient_colors
 
 def legal(x,y,width,height):
     if x < 0 or x >= width:
@@ -131,3 +122,5 @@ def upLift(pid):
     we_chat_main_dialog.minimize()
     we_chat_main_dialog.restore()
     
+if __name__ == '__main__':
+    pass

@@ -6,6 +6,13 @@
             "unit": "px"
         }
 
+    },
+    "parsing":{
+        "min stimulus interval": {
+            "value": 0.5,
+            "unit": "second"
+        }
+        
     }
         
 

@@ -497,7 +497,8 @@ if pstatus == "debug":
     if __name__ == '__main__':
         data_dealer = Dealer()
         data_dealer.parse_light(open('out-light-every.txt','r'), 60)
-        data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),60)
+        # data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),60)
+        data_dealer.parse_fbpoints(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),60)
         # data_dealer.data_change_ratio(0.012)
         # data_dealer.To_centimeter(0.012)
         # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
