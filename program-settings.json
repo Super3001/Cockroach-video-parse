@@ -12,10 +12,10 @@
             "value":20,
             "unit":"px"
         },
-        "light show mode": {
-            "value":"frame",
-            "unit":"str",
-            "all":["frame","continuous"]
+        "light show time": {
+            "value": 0,
+            "unit": "ms",
+            "all": ["0", "any positive number"]
         }
     },
     "parsing":{

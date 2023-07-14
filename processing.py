@@ -551,7 +551,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     showinfo(message='请拖动选择初始矩形框，之后回车')
     rtn_ = Idf.select_window(frame0)
     if rtn_ == 'q':
-        printb('')
+        printb('', OutWindow)
         return
     (x,y,w,h), minis = rtn_
     if OutWindow and OutWindow.display:
@@ -631,11 +631,11 @@ def cleanout(points, rect):
     
 def tilt(edge, display):
     rect0, minmax_points = rect_cover(edge,55)
-    if display:
-        edge_show0 = edge.copy()
-        edge_show0 = cv.rectangle(edge_show0, (rect0[2],rect0[0]), (rect0[3],rect0[1]), 255, 2)
-        if my_show(edge_show0):
-            return (None,) * 3
+    # if display:
+    #     edge_show0 = edge.copy()
+    #     edge_show0 = cv.rectangle(edge_show0, (rect0[2],rect0[0]), (rect0[3],rect0[1]), 255, 2)
+    #     if my_show(edge_show0):
+    #         return (None,) * 3
     # 用处理后的线性回归方法做角度计算
     points = count_points(edge,55)
     if len(points) < 10: # 采集到的点太少
@@ -646,7 +646,6 @@ def tilt(edge, display):
     if display:
         edge_show1 = edge.copy()
         edge_show1 = cv.rectangle(edge_show1, (rect[2],rect[0]), (rect[3],rect[1]), 255, 2)
-        
         print(rect0)
         print(rect)
     
@@ -656,9 +655,11 @@ def tilt(edge, display):
     angle = math.atan(f[0])*180/math.pi
     if display:
         print('angle:',angle)
-        edge_show1 = cv.circle(edge_show1,(rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
-        edge_show1 = cv.circle(edge_show1,(rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
+        # edge_show1 = cv.circle(edge_show1,(rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
+        # edge_show1 = cv.circle(edge_show1,(rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
+        edge_show1 = cv.line(edge_show1, (rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))), (rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))), 255, 2)
         if my_show(edge_show1):
+            cv2.destroyAllWindows()
             return (None,) * 3
     return rect, angle, len(points)
 
@@ -699,7 +700,7 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=0,tu
         if domain[2] < 0:
             domain[2] = 0
         if OutWindow and OutWindow.display:
-            printb(f'angle:',angle)
+            printb(f'angle: {angle}', OutWindow)
         # file_theta.write(str(round(angle,2))+'\n')  
         # file_center.write(print_mid_point(domain)+'\n')  
     stdoutpb = Stdout_progressbar(frame_num, not(OutWindow and OutWindow.display))
@@ -766,7 +767,7 @@ class FakeMs:
         self.cnt += 1
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\DSC_2059.MOV")
+    cap = cv2.VideoCapture(r"C:\Users\songy\Videos\DSC_2059.MOV")
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))

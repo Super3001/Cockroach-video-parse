@@ -17,6 +17,7 @@ if use_global:
 
 def monitor_show(frame, ratio=0, center_point=(-1,-1), time=0, function=None, container=None):
     # print(center_point)
+    frame_show = frame.copy()
     height = frame.shape[0]
     width = frame.shape[1]
     global g_rect
@@ -36,21 +37,24 @@ def monitor_show(frame, ratio=0, center_point=(-1,-1), time=0, function=None, co
     else:
         cv2.imshow("image",frame)
     if function:
-        cv2.setMouseCallback("image",function,frame)
+        cv2.setMouseCallback("image", function, frame_show)
     key = cv2.waitKey(time)
     if key == ord('q'):
+        # cv2.destroyAllWindows()
         return 1
     elif key == 13: # ENTER键
         cv2.destroyAllWindows()
         return 0
     else:
+        # print(key) # -1   
+        pass
         """ 递归进行选框，功能未完成 """
-        min_x,min_y,width,height = g_rect # (x,y,w,h)
+        '''min_x,min_y,width,height = g_rect # (x,y,w,h)
         frame = frame[min_y:min_y + height, min_x:min_x + width]
         frame = cv2.resize(frame,(1200,800))
         cv2.destroyWindow('roi')
         minis.append(g_rect)
-        return monitor_show(frame,ratio,center_point,time,function,container)
+        return monitor_show(frame,ratio,center_point,time,function,container)'''
 
 class Tractor: 
     def __init__(self) -> None:
@@ -98,6 +102,7 @@ class Tractor:
             # global gbColor
             self.gbColor = frame[y][x]
     """
+    
     def pointColor(self,event,x,y,flags,frame):
         end_process = False
         frame_show = frame.copy()

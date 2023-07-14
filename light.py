@@ -6,7 +6,7 @@ from utils import Stdout_progressbar
 
        
 """ 提取闪光主函数，不跳读 """
-def tractLight(cap, master, OutWindow, progressBar, thres=150):
+def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=0):
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     # w, h = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             # int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
@@ -46,7 +46,7 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150):
                     OutWindow.textboxprocess.insert("0.0","%d\n" % cnt)
                     frame_show = frame.copy()
                     cv.rectangle(frame_show, (domain[2]-20,domain[0]-20),(domain[3]+20,domain[1]+20),(0,0,255),2)
-                    if my_show(frame_show):
+                    if my_show(frame_show, time=show_time):
                         return 'stop'
                     """使用帧数进行记录"""
                 else:

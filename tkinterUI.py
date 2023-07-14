@@ -13,7 +13,7 @@ import control
 
 # 项目状态
 pstatus = control.pstatus
-
+   
 if pstatus == "debug":
     pass
     # import PySimpleGUI as sg
@@ -169,13 +169,15 @@ class APP:
         self.master.update()
         
     def load_video(self):
-        filename = filedialog.askopenfilename(defaultextension='.mp4')
-        if not filename: # 打开文件失败
+        filepath = filedialog.askopenfilename(defaultextension='.mp4')
+        if not filepath: # 打开文件失败
             return
         # tkinter.messagebox.showinfo(message=filename)
-        self.cap = cv.VideoCapture(filename)
-        if self.cap == None:
+        self.cap = cv.VideoCapture(filepath)
+        if self.cap == None: # 打开文件失败
             return
+        self.filename = os.path.basename(filepath)
+        print(self.filename)
         self.video_width = int(self.cap.get(3))
         self.video_height = int(self.cap.get(4))
         self.fps = int(round(self.cap.get(5)))
@@ -183,8 +185,6 @@ class APP:
         self.lbconfig['text'] = f'num_frames : {self.nframe}, fps : {self.fps}'
         self.lbconfig_2['text'] = f'width : {self.video_width}px, height : {self.video_height}px'
         # filename: absolute path
-        pos = filename.rfind('/')
-        self.filename = 'video'
         self.light = 0
         self.status = None
         self.master.update()
@@ -214,6 +214,7 @@ class APP:
         self.cap.set(1, 0) # 重置为第一帧
         ret, frame0 = self.cap.read()
         print('ratio:',self.magRatio)
+        cv.imwrite(f'{self.filename}.png', frame0)
         my_show(frame0,self.magRatio,self.first_middle_point)
         
     def set_process_multiple(self):
