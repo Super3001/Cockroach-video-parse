@@ -117,8 +117,8 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 - [ ] 放大的选点/选颜色
 - [x] 把QtUI去掉
 - [ ] userlog(?)
-- [ ] color 和 feature的提取过程展示
-- [ ] show first frame & save
+- [x] color 和 feature的提取过程展示
+- [x] show first frame & save
 
 
 

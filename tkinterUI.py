@@ -77,9 +77,9 @@ class APP:
         # temporary
         # self.lbp1 = Label(middleframe,image=self.lb1_photo)
         # self.lbp1.pack(side=TOP,padx=10,pady=20)
-        self.bt8 = Button(middleframe, text='视频缩放',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_magnify)
+        self.bt8 = Button(middleframe, text='转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_magnify)
         self.bt8.pack(side=TOP,pady=0)
-        self.bt9 = Button(middleframe, text='取消缩放',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.stop_magnify)
+        self.bt9 = Button(middleframe, text='取消转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.stop_magnify)
         self.bt9.pack(side=TOP,pady=0)
         middledownframe = Frame(middleframe)
         middledownframe.pack(side=TOP,padx=10,pady=10)
