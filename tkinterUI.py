@@ -67,7 +67,6 @@ class APP:
                   pady=10
                   )
         self.lb1.pack(side=TOP)
-        self.lb1_photo = PhotoImage(file=图片+'background.png')
         self.fps = '- '
         self.nframe = '- '
         self.video_width = '- '
@@ -211,6 +210,9 @@ class APP:
         tkinter.messagebox.showinfo(message='已关闭缩放')
         
     def show_first_frame(self):
+        if not self.cap:
+            tkinter.messagebox.showinfo(message=msg_NoVideo)
+            return
         self.cap.set(1, 0) # 重置为第一帧
         ret, frame0 = self.cap.read()
         print('ratio:',self.magRatio)
@@ -307,8 +309,8 @@ class APP:
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
     def go_feature(self):
-        if self.cap==None :
-            tkinter.messagebox.showinfo(message='请先导入文件')
+        if self.cap == None:
+            tkinter.messagebox.showinfo(message=msg_NoVideo)
             return
         tkinter.messagebox.showinfo(message='追踪前点')
         feature(self.cap,kind='front',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master, skip_n=self.skip_num)

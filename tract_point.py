@@ -360,12 +360,20 @@ class Identifier:
                         K[i][j] = high
                     else:
                         K[i][j] = low 
-            print(K.shape)
         else:
-            K = np.zeros((h,w))
-            for i in range(h):
-                for j in range(w):
-                    K[i][j] = np.sin( (gray[i][j] - 127) / 128 * np.pi / 2)
+            # transfrom gray to numpy.array
+            gray = np.array(gray)
+
+            # calculate mean and range
+            mean = np.mean(gray)
+            max_value = np.max(gray)
+            min_value = np.min(gray)
+            std = max(max_value - mean, mean - min_value)
+
+            # calculate K (altogether) by sin
+            K = np.sin( (gray - mean) / std * np.pi / 2)
+            
+            # normalize
             K = self.normalize(K)
     
     def select_window(self,frame):

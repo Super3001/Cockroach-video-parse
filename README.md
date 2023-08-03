@@ -11,21 +11,22 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 4. 使用轮廓识别不能输出摆动角速度
 5. 四种识别方法的比较
 
-| 方法 | 速度 | 应用场景 |
-| :--: | :--: | :--: |
-| meanshift | 快 | 
-| 颜色识别 | 较快 | 
-| 轮廓识别 | 较慢 | 
-| 标志点特征识别 | 较快 | 
+| 方法 | 速度 | 精度 | 是否可以处理蟑螂出镜的情况 |
+| :--: | :--: | :--: | :--: |
+| meanshift | 快 | 较高 | 是 | 
+| 颜色识别 | 较快 | 一般 | 是 |
+| 轮廓识别 | 较慢 | 不好 |
+| 标志点特征识别 | 较快 | 较高 |
 
 ## 功能实现：
 
-| mathod | mutiple | skip read | 
+| method | basic | mutiple | skip read | 
 | :--: | :--: | :--: | :--: |
-| meanshift | OK | OK |
-| color | OK | OK |
-| contour | - | OK |
-| feature | - | OK |
+| meanshift | OK | OK | OK |
+| color | OK | OK | OK |
+| contour | OK | - | OK |
+| contour+CNN | - | - | - |
+| feature | OK | - | OK |
 
 | data object | change unit |
 | :--: | :--: |
@@ -114,12 +115,17 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
       这样统一了有效数据的帧数，可以用indice和mask写法，优先使用mask）
 
 - [x] 数据np.array化
-- [ ] 放大的选点/选颜色
+- [-] 放大的选点/选颜色
 - [x] 把QtUI去掉
-- [ ] userlog(?)
 - [x] color 和 feature的提取过程展示
 - [x] show first frame & save
 
+7.14 consult with Yuli:
+- [x] 调整kernal生成方式
+- [ ] 提示词
+- [ ] 标志点特征旋转
+- [ ] 窗口大小实现响应式布局
+- [ ] 角度结果跳变
 
 
 My Log:
