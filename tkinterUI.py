@@ -5,21 +5,29 @@ from tkinter import filedialog
 import cv2 as cv
 from processing import *
 from light import tractLight
-# from deal_with_data import *
 from deal_data import Dealer
 import utils
 import sys, os
 import control
+
+'''
+# TODO:
+8.19.2023
+1. 响应式布局 "responsive layout"
+
+
+# edit
+8.19.2023
+main interface
+
+
+'''
 
 # 项目状态
 pstatus = control.pstatus
    
 if pstatus == "debug":
     pass
-    # import PySimpleGUI as sg
-    # sg.preview_all_look_and_feel_themes()
-# 创建其他窗口并运行
-# ...
 
 # desktop = 'C:\\Users\\LENOVO\\Desktop\\'
 图片 = '.\\src\\'
@@ -37,10 +45,11 @@ str_geometryProperty = '1600x850+50+50'
 # utils.set_exit()
 
 class APP:
-    def __init__(self,master) -> None:
+    def __init__(self,master, pstatus) -> None:
         self.project_status = pstatus
         self.master = master
         self.master.title('蟑螂视频处理程序')
+        # left, middle, right frame
         leftframe = Frame(master,width=40,height=40)
         leftframe.pack(side=LEFT,padx=10,pady=10)
         middleframe = Frame(master)
@@ -48,6 +57,7 @@ class APP:
         rightframe = Frame(master)
         rightframe.pack(side=RIGHT,padx=10,pady=10)
         
+        # left frame: input and output control
         self.bt1 = Button(leftframe,width=25,height=3,text='导入视频',
                           font=("等线",20),bg='black',fg='white',command=self.load_video)
         self.bt1.pack(side=TOP)
@@ -60,7 +70,12 @@ class APP:
         self.bt7 = Button(leftframe,width=25,height=3,text='退出',
                           font=("等线",20),bg='orange',fg='black',command=self.quit)
         self.bt7.pack(side=TOP)
+        if self.project_status == 'debug':
+            self.bt_app = Button(leftframe,width=25,height=3,text='重启',
+                            font=("等线",20),bg='orange',fg='black',command=self.restart)
+            self.bt_app.pack(side=TOP)
         
+        # middle frame: display and process control
         self.lb1 = Label(middleframe, text='实验数据处理\n带标记点的蟑螂追踪系统',  #文字支持换行
                   font=("华文行楷",30),
                   padx=10,
@@ -73,12 +88,18 @@ class APP:
         self.video_height = '- '
         self.lbconfig = Label(middleframe, text=f'num_frames : {self.nframe}, fps : {self.fps}', pady=5, font=('Times New Roman',15))
         self.lbconfig.pack(side=TOP)
-        # temporary
-        # self.lbp1 = Label(middleframe,image=self.lb1_photo)
-        # self.lbp1.pack(side=TOP,padx=10,pady=20)
+        self.lbconfig_2 = Label(middleframe, text=f'width : {self.video_width}px, height : {self.video_height}px', pady=5, font=('Times New Roman',15))
+        self.lbconfig_2.pack(side=TOP,pady=5)
+        
+        # display control
+        self.bt10 = Button(middleframe, text='展示第一帧',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.show_first_frame)
+        self.bt10.pack(side=TOP,pady=0)
         self.bt8 = Button(middleframe, text='转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_magnify)
         self.bt8.pack(side=TOP,pady=0)
         self.bt9 = Button(middleframe, text='取消转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.stop_magnify)
+        
+        # process control
+        # middle down frame: magnify process
         self.bt9.pack(side=TOP,pady=0)
         middledownframe = Frame(middleframe)
         middledownframe.pack(side=TOP,padx=10,pady=10)
@@ -89,23 +110,16 @@ class APP:
         self.e1.grid(row=1,column=2)
         self.ebt1 = Button(middledownframe, text='确定', font=("等线",15,"underline"),relief=FLAT,command=self.set_process_multiple)
         self.ebt1.grid(row=1,column=3)
-        # self.lb3 = Label(middledownframe,text='读取的缩放倍数：',font=("等线",15))
-        # self.lb3.grid(row=2,column=1)
-        # self.e2 = Entry(middledownframe, font=("等线",15),relief=FLAT,width=12)
-        # self.e2.insert(0, "1(输入一个正数)")
-        # self.e2.grid(row=2,column=2)
-        # self.ebt2 = Button(middledownframe, text='确定', font=("等线",15,"underline"),relief=FLAT,command=self.set_reading_multiple)
-        # self.ebt2.grid(row=2,column=3)
+        
         self.progressbar = ttk.Progressbar(middleframe,length=400)
         self.progressbar.pack(side=TOP,pady=20)
         self.progressbar['maximum'] = 100
         self.progressbar['value'] = 0
-        self.bt10 = Button(middleframe, text='展示第一帧',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.show_first_frame)
-        self.bt10.pack(side=TOP,pady=0)
+        
         self.bt11 = Button(middleframe, text='frame skip',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.set_skip)
         self.bt11.pack(side=TOP,pady=0)
-        self.lbconfig_2 = Label(middleframe, text=f'width : {self.video_width}px, height : {self.video_height}px', pady=5, font=('Times New Roman',15))
-        self.lbconfig_2.pack(side=TOP,pady=5)
+        
+        # right frame: method choice
         self.bt2 = Button(rightframe,width=15,height=1,text='meanshift',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_meanshift)
         self.bt2.pack(side=TOP,pady=10)
@@ -119,15 +133,17 @@ class APP:
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_feature)
         self.bt5.pack(side=TOP,pady=10)
         
+        # bottom frame: process display
         bottomframe = Frame(rightframe,relief=SUNKEN)
         bottomframe.pack(side=BOTTOM,padx=10,pady=10)
-        
         self.bt8 = Button(bottomframe,width=15,text='提取过程展示',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_display)
         self.bt8.pack(side=TOP,pady=(10,0))
         self.bt9 = Button(bottomframe,width=15,text='关闭提取过程展示',
                           font=("等线",15,"bold"),bg='red',fg='white',activebackground='green',command=self.stop_display)
         self.bt9.pack(side=TOP,pady=(0,10))
+        
+        # properties
         self.cap = None
         if(self.project_status == 'debug'):
             self.status = 'meanshift'
@@ -155,12 +171,18 @@ class APP:
         self.first_middle_point = (-1,-1)
         self.pm = 1
         self.rm = 1
-        self.master.geometry('1200x700+50+50') # 失效？
+        self.master.geometry('1200x700+50+50')
         self.tier2 = None
 
         
     def quit(self):
         # self.master.destroy()
+        sys.exit(0)
+        
+    '''function to debug, to restart the program'''
+    def restart(self):
+        # print(os.getcwd()) # OK
+        os.system('python tkinterUI.py')
         sys.exit(0)
         
     def refresh(self):
@@ -489,11 +511,12 @@ class OutputWindow:
         pid = utils.get_pid(self.startTime)
         utils.upLift(pid)
         
-def main():   
+def main():
     root = Tk()
-    app = APP(root)
+    app = APP(root, pstatus)
     root.geometry(str_geometryProperty)
     root.mainloop()
     
 if __name__ == '__main__':
+    pstatus = "debug"
     main()
