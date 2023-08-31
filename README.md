@@ -77,7 +77,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 - [ ] tract point show output to out_window
 
-- [ ] add cut_edge when tracting points
+- [x] add cut_edge when tracting points
 
 - [x] check if the multiple process is OK
 
@@ -119,7 +119,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 - [x] some problems about px_to_cm result dealing
 
-- [ ] regular plot: x_label and y_label for each plot
+- [x] regular plot: x_label and y_label for each plot
 
   (xlabel, ylabel, figname, title)
 
@@ -135,7 +135,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 - [x] outWindow open and close
 
-- [ ] contour-detection my_show close error
+- [x] contour-detection my_show close error
 
 - [x] central-control mode ["release","debug"]
 
@@ -171,7 +171,6 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 7.14 consult with Yuli:
 - [x] 调整kernal生成方式
-- [ ] 提示词
 - [ ] 标志点特征旋转
 - [ ] 窗口大小实现响应式布局
 - [ ] 角度结果跳变

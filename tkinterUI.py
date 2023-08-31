@@ -12,9 +12,7 @@ import control
 
 '''
 # TODO:
-8.19.2023
-1. 响应式布局 "responsive layout"
-
+window size
 
 # edit
 8.19.2023
@@ -29,22 +27,44 @@ pstatus = control.pstatus
 if pstatus == "debug":
     pass
 
-# desktop = 'C:\\Users\\LENOVO\\Desktop\\'
-图片 = '.\\src\\'
-
 # 提示信息
 Prompt = "\n1.图像展示过程按q退出\n2.按空格键暂停\n"
 msg_NoVideo = '请先导入视频'
 
 # 缩放比例 x: cm/px
 View = 50 # 屏幕上50px -> 1cm
-# 窗口大小
-str_geometryProperty = '1600x850+50+50'
+# 窗口大小: 响应式
+WIDTH = 1600
+HEIGHT = 800
+str_geometryProperty = f'{WIDTH}x{HEIGHT}+50+50'
+# str_geometryProperty = '1200x700+50+50'
 
 # 设置全局异常处理程序
 # utils.set_exit()
 
 class APP:
+    '''回调函数，用于处理窗口大小变化事件'''
+    def resize_window(self,event):
+        # 获取当前窗口的大小
+        window_width = event.width
+        window_height = event.height
+
+        ratio_width = window_width / self.width
+        ratio_height = window_height / self.height
+
+        # 一个试验，初始的(width, height) = (25, 3)
+        self.bt1['width'] = int(25 * ratio_width)
+        self.bt1['height'] = int(3 * ratio_height)
+        
+        # 根据窗口大小调整布局
+        # 这里可以根据需要自定义布局调整的逻辑
+        # 以下是一个简单的示例，将窗口分为四个区域
+        # 并将每个区域的大小设置为窗口大小的四分之一
+        # for i in range(10):
+        #     self.master.grid_rowconfigure(i, weight=1, minsize=window_height // 4)
+        #     self.master.grid_columnconfigure(i, weight=1, minsize=window_width // 4)
+    
+    # pack写法
     def __init__(self,master, pstatus) -> None:
         self.project_status = pstatus
         self.master = master
@@ -142,7 +162,114 @@ class APP:
         self.bt9 = Button(bottomframe,width=15,text='关闭提取过程展示',
                           font=("等线",15,"bold"),bg='red',fg='white',activebackground='green',command=self.stop_display)
         self.bt9.pack(side=TOP,pady=(0,10))
-        
+
+        # grid写法
+        '''def __init__(self, master, pstatus) -> None:
+        self.project_status = pstatus
+        self.master = master
+        self.master.title('蟑螂视频处理程序')
+
+        self.width = WIDTH
+        self.height = HEIGHT
+        # self.master.bind("<Configure>", self.resize_window)
+
+        # left, middle, right frame
+        leftframe = Frame(master, width=40, height=40)
+        leftframe.grid(row=0, column=0, padx=10, pady=10)
+        middleframe = Frame(master)
+        middleframe.grid(row=0, column=1, padx=10, pady=10)
+        rightframe = Frame(master)
+        rightframe.grid(row=0, column=2, padx=10, pady=10)
+
+        # leftframe.pack_propagate(False)  # 禁止自动调整大小
+        # leftframe.grid_propagate(False)
+
+        # left frame: input and output control
+        self.bt1 = Button(leftframe, width=25, height=3, text='导入视频',
+                        font=("等线", 20), bg='black', fg='white', command=self.load_video)
+        self.bt1.grid(row=0, column=0, pady=10)
+        self.bt6 = Button(leftframe, width=25, height=3, text='提取闪光',
+                        font=("等线", 20), bg='black', fg='white', command=self.tract_light)
+        self.bt6.grid(row=1, column=0, pady=10)
+        self.bt7 = Button(leftframe, width=25, height=3, text='查看结果',
+                        font=("等线", 20), bg='green', fg='white', command=self.view_result)
+        self.bt7.grid(row=2, column=0, pady=10)
+        self.bt7 = Button(leftframe, width=25, height=3, text='退出',
+                        font=("等线", 20), bg='orange', fg='black', command=self.quit)
+        self.bt7.grid(row=3, column=0, pady=10)
+        if self.project_status == 'debug':
+            self.bt_app = Button(leftframe, width=25, height=3, text='重启',
+                                font=("等线", 20), bg='orange', fg='black', command=self.restart)
+            self.bt_app.grid(row=4, column=0, pady=10)
+
+        # middle frame: display and process control
+        self.lb1 = Label(middleframe, text='实验数据处理\n带标记点的蟑螂追踪系统',  # 文字支持换行
+                        font=("华文行楷", 30),
+                        padx=10,
+                        pady=10
+                        )
+        self.lb1.grid(row=0, column=0, pady=10)
+        self.fps = '- '
+        self.nframe = '- '
+        self.video_width = '- '
+        self.video_height = '- '
+        self.lbconfig = Label(middleframe, text=f'num_frames : {self.nframe}, fps : {self.fps}', pady=5, font=('Times New Roman', 15))
+        self.lbconfig.grid(row=1, column=0, pady=5)
+        self.lbconfig_2 = Label(middleframe, text=f'width : {self.video_width}px, height : {self.video_height}px', pady=5, font=('Times New Roman', 15))
+        self.lbconfig_2.grid(row=2, column=0, pady=5)
+
+        # display control
+        self.bt10 = Button(middleframe, text='展示第一帧', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.show_first_frame)
+        self.bt10.grid(row=3, column=0, pady=0)
+        self.bt8 = Button(middleframe, text='转换单位', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.go_magnify)
+        self.bt8.grid(row=4, column=0, pady=0)
+        self.bt9 = Button(middleframe, text='取消转换单位', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.stop_magnify)
+        self.bt9.grid(row=5, column=0, pady=0)
+
+        # process control
+        # middle down frame: magnify process
+        middledownframe = Frame(middleframe)
+        middledownframe.grid(row=6, column=0, padx=10, pady=10)
+        self.lb2 = Label(middledownframe, text='处理的缩放倍数：', font=("等线", 15))
+        self.lb2.grid(row=1, column=1)
+        self.e1 = Entry(middledownframe, font=("等线", 15), relief=FLAT, width=12)
+        self.e1.insert(0, "1(请输入正数)")
+        self.e1.grid(row=1, column=2)
+        self.ebt1 = Button(middledownframe, text='确定', font=("等线", 15, "underline"), relief=FLAT, command=self.set_process_multiple)
+        self.ebt1.grid(row=1, column=3)
+
+        self.progressbar = ttk.Progressbar(middleframe, length=400)
+        self.progressbar.grid(row=7, column=0, pady=20)
+        self.progressbar['maximum'] = 100
+        self.progressbar['value'] = 0
+
+        self.bt11 = Button(middleframe, text='frame skip', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.set_skip)
+        self.bt11.grid(row=8, column=0, pady=0)
+
+        # right frame: method choice
+        self.bt2 = Button(rightframe, width=15, height=1, text='meanshift',
+                        font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_meanshift)
+        self.bt2.grid(row=0, column=0, pady=10)
+        self.bt3 = Button(rightframe, width=15, height=1, text='颜色识别',
+                        font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_color)
+        self.bt3.grid(row=1, column=0, pady=10)
+        self.bt4 = Button(rightframe, width=15, height=1, text='轮廓识别',
+                        font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_contour)
+        self.bt4.grid(row=2, column=0, pady=10)
+        self.bt5 = Button(rightframe, width=15, height=1, text='标志点特征识别',
+                        font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_feature)
+        self.bt5.grid(row=3, column=0, pady=10)
+
+        # bottom frame: process display
+        bottomframe = Frame(rightframe, relief=SUNKEN)
+        bottomframe.grid(row=4, column=0, padx=10, pady=10)
+        self.bt8 = Button(bottomframe, width=15, text='提取过程展示',
+                        font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_display)
+        self.bt8.grid(row=0, column=0, pady=(10, 0))
+        self.bt9 = Button(bottomframe, width=15, text='关闭提取过程展示',
+                        font=("等线", 15, "bold"), bg='red', fg='white', activebackground='green', command=self.stop_display)
+        self.bt9.grid(row=1, column=0, pady=(0, 10))'''
+
         # properties
         self.cap = None
         if(self.project_status == 'debug'):
@@ -171,7 +298,7 @@ class APP:
         self.first_middle_point = (-1,-1)
         self.pm = 1
         self.rm = 1
-        self.master.geometry('1200x700+50+50')
+        self.master.geometry(str_geometryProperty)
         self.tier2 = None
 
         
@@ -303,6 +430,7 @@ class APP:
         if self.output_window and self.output_window.display:
             if flag == 'stop':
                 self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
+                cv.destroyAllWindows()
             else:
                 self.output_window.textboxprocess.insert('0.0','前点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
@@ -353,6 +481,8 @@ class APP:
             tkinter.messagebox.showinfo(message='闪光提取完成')
         else:
             tkinter.messagebox.showinfo(message='提取过程中止，展示模式不记录数据')
+            self.output_window.textboxprocess.insert('0.0',"提取过程中止，展示模式不记录数据\n")
+            cv.destroyAllWindows()
         self.light = 1
         self.refresh()
         

@@ -89,7 +89,7 @@ class Tractor:
             cv2.imshow("Point",cv2.resize(frame_show[y1:y2,x1:x2], (800,800)))
             cv2.moveWindow("Point",x-edge//2,y-edge//2)
             key = cv2.waitKey(0) & 0xFF
-            if key == 13:
+            if key == 13: # ENTER
                 print(self.gbPoint)
                 cv2.destroyAllWindows()
             else:

@@ -6,7 +6,16 @@ from utils import Stdout_progressbar
 
        
 """ 提取闪光主函数，不跳读 """
-def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=0):
+def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=1000//30):
+    """
+    args:
+        cap: cv.VideoCapture
+        master: tkinter.Tk
+        OutWindow: OutWindow
+        progressBar: tkinter.ttk.Progressbar
+        thres: int - (0,255)
+        show_time: int - 毫秒
+    """
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     # w, h = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             # int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
@@ -52,10 +61,13 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=0):
                 else:
                     file.write(f'{cnt}\n')
             else:
-                frame_show = frame.copy()
-                cv.rectangle(frame_show, (domain[2]-20,domain[0]-20),(domain[3]+20,domain[1]+20),(255,0,0),2)
-                if my_show(frame_show):
-                    return 'stop'
+                if OutWindow and OutWindow.display:
+                    frame_show = frame.copy()
+                    cv.rectangle(frame_show, (domain[2]-20,domain[0]-20),(domain[3]+20,domain[1]+20),(255,0,0),2)
+                    if my_show(frame_show, time=show_time):
+                        return 'stop'
+                else:
+                    pass
             stdoutpb.update(cnt)
 
         else:
@@ -72,5 +84,5 @@ if pstatus == "debug":
             self.cnt += 1
 
     if __name__ == '__main__':
-        cap = cv.VideoCapture('C:\\Users\\LENOVO\\Desktop\\10Hz,右，样本2 00_00_51-00_01_46.mp4')
+        cap = cv.VideoCapture("D:\\GitHub\\Cockroach-video-parse\\src\\DSC_2059.MOV")
         tractLight(cap, master=FakeMs(),OutWindow=None,progressBar=dict())

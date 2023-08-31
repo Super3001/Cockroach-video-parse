@@ -205,9 +205,20 @@ class Dealer(DataParser):
                         f.write(f'{x:3d}: {theta:.6f}\n')
                     plt_x.append(x)
                     plt_y.append(theta)
-                plt.plot(plt_x,plt_y,c='b')
+                '''change: 不连续点'''
+                # plt.plot(plt_x,plt_y,c='b')
+                for i in range(1, len(plt_x)):
+                    if abs(plt_y[i] - plt_y[i-1]) > 90:
+                        # plt.plot(x[i], y[i], 'o', c='r')  # 绘制跳变点
+                        pass
+                    else:
+                        plt.plot([plt_x[i-1], plt_x[i]], [plt_y[i-1], plt_y[i]], '-', c='b')
+
+                plt.xlabel('x')
+                plt.ylabel('y')
+                plt.title('Plotting Curve')
                 plt.xlabel('number of frame')
-                plt.ylabel('angle(deg)')
+                plt.ylabel('angle(deg)') # 单位：角度
                 plt.title('angle curve')
                 plt.savefig(f'fig\pAngle-stimulus{i+1}.png')
                 plt.show()
