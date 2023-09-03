@@ -1,5 +1,4 @@
 # parse_data.py
-import time
 import utils
 from math import sqrt, atan, ceil, pi
 import numpy as np
@@ -11,6 +10,8 @@ from control import pstatus
 
 """ 主要做的是：1.数据有效化 2.segment每次刺激 """
 """ 数据的保存形式全部为np.ndarray """
+
+TBD = -10
 
 def f2sec(n,fps): # 将帧数转化为秒
     return n / fps
@@ -26,7 +27,6 @@ class DataParser:
         self.K = []
         self.D = []
         self.Theta = []
-        self.__all__ = ['X1','Y1','X2','Y2','X_mid','Y_mid','K','D','Theta', 'frames']
         self.__available__ = []
         self.before = before
         self.after = after
@@ -96,11 +96,15 @@ class DataParser:
     def parse_fbpoints(self,file_f,file_b, fps):
         self.filekind = 'fb'
         self.timestr = utils.timestr()
+
+        # 声明所有可用的数据
+        self.__available__ = ['X1','Y1','X2','Y2','X_mid','Y_mid','K','D','Theta','frames','frames_adj','durings']
+
         data1 = file_f.readlines()
         data2 = file_b.readlines()
         self.X1 = {} # {frame: value} 格式
         self.Y1 = {}
-        """ X1, X2因为不是用时采样，对应的frame可能不一样 """
+        """ X1, X2因为不是同时采样，对应的frame可能不一样 """
         nframe_1 = data1[-1].split()[0]
         nframe_1 = int(nframe_1)
         for i in data1:
@@ -126,8 +130,6 @@ class DataParser:
             self.Y2[frame] = y
         self.num1 = len(self.X1)
         self.num2 = len(self.X2)
-        ''' 前点和后点的记录数应该都是有效读的帧数，因此...，frame可以只看其中一个'''
-        # assert self.num1 == self.num2, "Wrong Data"
         
         self.frames = []
         self.X_mid = []
@@ -135,7 +137,7 @@ class DataParser:
         self.K=[]
         self.D = []
         self.Theta=[]
-        zerot = 0 # 可以计算出来
+        self.zerot = 0 # 可以计算出来
         
         for f in range(min(nframe_1, nframe_2)):
             i = str(f) # key也可以当做一种下标
@@ -171,17 +173,160 @@ class DataParser:
         for i in range(self.num-1):
             if self.frames[i+1] - self.frames[i] <= self.skip_n:
                 self.frames_adj[i] = 1
-        # self.frames_adj = np.where(np.array([self.frames[j+1]-self.frames[j] for j in range(self.num-1)]) <= self.skip_n)
+        
         self.X1 = np.array(self.X1); self.Y1 = np.array(self.Y1); self.X2 = np.array(self.X2); self.Y2 = np.array(self.Y2)
         self.X_mid = np.array(self.X_mid); self.Y_mid = np.array(self.Y_mid)
         self.K = np.array(self.K); self.D = np.array(self.D); self.Theta = np.array(self.Theta)
-        self.__available__ = ['X1','Y1','X2','Y2','X_mid','Y_mid','K','D','Theta','frames']
         self.durings = self.sti_segment()
 
+    def parse_feature_result(self, file_f,file_b, fps):
+        self.filekind = ['f','b']
+        self.parse_time = utils.timestr()
+        self.__available__ = ['X1','Y1','X2','Y2','X_mid','Y_mid','K','D','Theta','frames','assist_angle_f','assist_angle_b','frames_adj','frame_interval','durings'] # 所有可供使用的数据
+
+        data_f = file_f.readlines()
+        data_b = file_b.readlines()
+        self.X1 = {}
+        self.Y1 = {}
+        self.assist_angle_f = {}
+
+        frame = 0
+        # 逐行解析
+        for line in data_f:
+            items = line.split()
+            frame = items[0]
+            if items[1] == 'angle': # if len(items) == 3:
+                self.assist_angle_f[frame] = items[2]
+            elif 'black' in items[1] or 'relocate' in items[1]:
+                continue
+            else:
+                y, x = items[1].split(',')
+                x = float(x)
+                y = -float(y)
+                self.X1[frame] = x
+                self.Y1[frame] = y
+
+        self.X2 = {}
+        self.Y2 = {}
+        self.assist_angle_b = {}
+
+        # 逐行解析后点
+        for line in data_b:
+            items = line.split()
+            frame = items[0]
+            if items[1] == 'angle': # if len(items) == 3:
+                self.assist_angle_b[frame] = items[2]
+            elif 'black' in items[1] or 'relocate' in items[1]:
+                continue
+            else:
+                y, x = items[1].split(',')
+                x = float(x)
+                y = -float(y)
+                self.X2[frame] = x
+                self.Y2[frame] = y
+
+        # 对帧
+        """nframe表示最大的帧, num表示帧数量"""
+        nframe_1 = int(data_f[-1].split()[0])
+        nframe_2 = int(data_b[-1].split()[0])
+
+        self.num1 = len(self.X1)
+        self.num2 = len(self.X2)
+
+        '''以下都使用np.array格式'''
+        self.frames = []
+        self.zerot = TBD # 无效帧的数量
+
+        # 重要: range记得+1
+        for f in range(min(nframe_1, nframe_2) + 1):
+            i = str(f) # key should be str
+            if i in self.X1 and i in self.X2:
+                self.frames.append(f)
+
+        self.frames = np.array(self.frames) # 表示有效帧
+        
+        # 计算帧特征
+        self.nframe = np.max(self.frames)
+        self.num = self.frames.size
+        self.zerot = min(self.num1, self.num2) - self.num
+        print('num:', self.num, 'nframe:', self.nframe, 'zerot:', self.zerot)
+        
+        # 提取中心点
+        self.X_mid = []
+        self.Y_mid = []
+
+        for f in self.frames:
+            i = str(f)
+            xmid = (self.X1[i]+self.X2[i])/2
+            ymid = (self.Y1[i]+self.Y2[i])/2
+            self.X_mid.append(xmid)
+            self.Y_mid.append(ymid)
+        self.X_mid = np.array(self.X_mid); self.Y_mid = np.array(self.Y_mid)
+        
+        # 提取（计算）角度
+        self.D = []
+        self.K = []
+        self.Theta = []
+
+        for f in self.frames:
+            i = str(f)
+            point_f = np.array([self.X1[i], self.Y1[i]])
+            point_b = np.array([self.X2[i], self.Y2[i]])
+            dist = np.linalg.norm(point_b - point_f)
+            dx, dy = point_b - point_f # numpy.array解包
+            if dx < 0.001:
+                k = 0
+            else:
+                k = dy / dx
+            
+            self.D.append(dist)
+            self.K.append(k)
+            self.Theta.append(atan(k)*180/pi) 
+        self.K = np.array(self.K); self.D = np.array(self.D); self.Theta = np.array(self.Theta)
+
+        # 注：theta要连续，而atan生成的不连续，所以要处理
+        self.smooth_thetas(90) # 90度以上认为是跳变
+
+        # 过滤出有效值（并转为np.array, dtype=np.float）
+        """这里的frames一定是统一的，而且一定是在X1, X2里有值的"""
+        self.X1 = np.array([float(self.X1[str(f)]) for f in self.frames])
+        self.Y1 = np.array([float(self.Y1[str(f)]) for f in self.frames])
+        self.X2 = np.array([float(self.X2[str(f)]) for f in self.frames])
+        self.Y2 = np.array([float(self.Y2[str(f)]) for f in self.frames])
+        self.assist_angle_f = np.array([float(self.assist_angle_f[str(f)]) for f in self.frames])
+        self.assist_angle_b = np.array([float(self.assist_angle_b[str(f)]) for f in self.frames])
+
+        # 计算帧近邻
+        assert self.num > 0, "Data error"
+        # self.frames_adj = np.zeros((self.num-1,), dtype=np.bool)
+        # 注意：np.where返回的是tuple
+        self.frames_adj = np.where(self.frames[1:] - self.frames[:-1] <= self.skip_n)[0]
+
+        # 计算帧间隔
+        # self.frame_interval = np.zeros((self.num-1,), dtype=np.int)
+        self.frame_interval = self.frames[1:] - self.frames[:-1]
+
+        # 分割刺激
+        self.durings = self.sti_segment()
+        
+        ''' end '''
+
+    def smooth_thetas(self,threshold):
+        smoothed_thetas = self.Theta.copy()
+        for i in range(1, len(smoothed_thetas)):
+            diff = smoothed_thetas[i] - smoothed_thetas[i-1]
+            if diff > threshold: # 由负跳变为正
+                smoothed_thetas[i:] -= 180
+            elif diff < -threshold: # 由正跳变为负
+                smoothed_thetas[i:] += 180
+        thetas = smoothed_thetas - smoothed_thetas[0] # 以第一个角度为0
+        self.Theta = thetas
 
     def parse_center_angle(self, file_center,file_angle,fps):
         self.filekind = 'ca'
         self.timestr = utils.timestr()
+        self.__available__ = ['X_mid','Y_mid','Theta','frames']
+
         data1 = file_center.readlines()
         data2 = file_angle.readlines()
         self.X1 = []
@@ -214,7 +359,7 @@ class DataParser:
         self.num2 = len(self.Theta)
         assert self.num1 == self.num2, "Wrong Data"
 
-        # 数据过滤
+        # 数据过滤(两种写法均可)
         """ 有indice和mask两种写法，考虑到被过滤掉的数据少于保留的数据，这里采用mask的写法"""
         mask = np.ones((self.num1,))
         for i in range(self.num1):
@@ -231,8 +376,8 @@ class DataParser:
         for i in range(self.num-1):
             if self.frames[i+1] - self.frames[i] <= self.skip_n:
                 self.frames_adj[i] = 1
-        # showinfo(message='共检测到数据'+str(len(self.X_mid)))
-        self.__available__ = ['X_mid','Y_mid','Theta','frames']
+
+        self.smooth_thetas(90) # 90度以上认为是跳变
         self.durings = self.sti_segment()
 
         ''' end '''
@@ -241,6 +386,6 @@ if pstatus == "debug":
     if __name__ == '__main__':
         parser = DataParser()
         parser.parse_light(open('out-light-every.txt','r'), 30)
-        parser.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
+        parser.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         print('finish')
 

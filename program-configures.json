@@ -1,8 +1,34 @@
 {
-    "comment": "settings for cockroach-video-parse-program",
+    "comment": "configurations for cockroach-video-parse-program",
+    "ui":{
+        "layout": {
+            "value": "pack",
+            "unit": "str",
+            "all": [
+                "pack",
+                "grid"
+            ]
+        }
+    },
     "processing":{
         "shifting widow offset": {
             "value": 5,
+            "unit": "px"
+        },
+        "shifting window offset for color method": {
+            "value": 20,
+            "unit": "px"
+        },
+        "shifting window border for countour method": {
+            "value": 60,
+            "unit": "px"
+        },
+        "shifting window offset for feature method": {
+            "value": 20,
+            "unit": "px"
+        },
+        "imshow border for feature method": {
+            "value": 20,
             "unit": "px"
         }
 
@@ -23,7 +49,6 @@
             "value": 0.5,
             "unit": "second"
         }
-        
     },
     "other":{
         "timestamp at": {
@@ -36,8 +61,5 @@
             ]
         }
     }
-
-        
-
 }
 

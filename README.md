@@ -11,29 +11,30 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 4. 使用轮廓识别不能输出摆动角速度
 5. 四种识别方法的比较
 
-| 方法 | 速度 | 精度 | 是否可以处理蟑螂出镜的情况 |
-| :--: | :--: | :--: | :--: |
-| meanshift | 快 | 较高 | 是 | 
-| 颜色识别 | 较快 | 一般 | 是 |
-| 轮廓识别 | 较慢 | 不好 |
-| 标志点特征识别 | 较快 | 较高 |
+| method      | 速度 | 精度 | 重新定位 |
+| :--:        | :--: | :--: | :--:    |
+| meanshift   | 快   | 较高 | ok | 
+| color       | 较快 | 较高 | ok |
+| contour     | 较慢 | 一般 | ok |
+| contour+cnn | 较慢 | 较高 | ok |
+| feature     | 较快 | 高   | 困难 |
 
 ## 功能实现：
 
-| method | basic | mutiple | skip read | 
-| :--: | :--: | :--: | :--: |
-| meanshift | OK | OK | OK |
-| color | OK | OK | OK |
-| contour | OK | - | OK |
-| contour+CNN | - | - | - |
-| feature | OK | - | OK |
+| method      | basic | mutiple | skip read | 
+| :--:        | :--:  | :--:    | :--:      |
+| meanshift   | OK | OK | OK |
+| color       | OK | OK | OK |
+| contour     | OK | -  | OK |
+| contour+CNN | -  | -  | -  |
+| feature     | OK | -  | OK |
 
-| data object | change unit |
-| :--: | :--: |
-| path | OK |
-| radius | OK |
-| angle | - |
-| omega | - |
+| data object | output to file | output to plt | change unit |
+| :--:        | :--:           | :--:          | :--:        |
+| path        | ok | ok | ok |
+| radius      | ok | ok | ok |
+| angle       | ok | ok | -  |
+| omega       | ok | ok | -  |
 
 
 ## 代码特征：
@@ -171,9 +172,12 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 7.14 consult with Yuli:
 - [x] 调整kernal生成方式
-- [ ] 标志点特征旋转
+- [x] 标志点特征旋转
 - [ ] 窗口大小实现响应式布局
 - [ ] 角度结果跳变
+
+9.1
+- [ ] 加入辅助角度
 
 
 My Log:

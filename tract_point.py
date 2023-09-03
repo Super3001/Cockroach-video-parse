@@ -222,12 +222,12 @@ class Tractor:
         return self.gbRect[0][1],self.gbRect[1][1]-self.gbRect[0][1],self.gbRect[0][0],self.gbRect[1][0]-self.gbRect[0][0] # y, x, h, w
 
     def tractPoint(self,frame):
-        self.gbPoint = (0,0)
+        self.gbPoint = (-1,-1)
         cv2.imshow("windowName",frame)
         cv2.setMouseCallback("windowName", self.pointPos, frame)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
-        print(self.mutiple)
+        print('mutiple', self.mutiple)
         x,y = self.gbPoint
         self.gbPoint = (x*self.mutiple, y*self.mutiple)
         return

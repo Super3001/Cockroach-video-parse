@@ -12,11 +12,8 @@ import control
 
 '''
 # TODO:
+规范tkinterUI.py的书写，槽函数尽量简单一点，把消息提示框放到处理主函数中(optional)
 window size
-
-# edit
-8.19.2023
-main interface
 
 
 '''
@@ -319,10 +316,12 @@ class APP:
     def load_video(self):
         filepath = filedialog.askopenfilename(defaultextension='.mp4')
         if not filepath: # 打开文件失败
+            print('用户退出')
             return
         # tkinter.messagebox.showinfo(message=filename)
         self.cap = cv.VideoCapture(filepath)
         if self.cap == None: # 打开文件失败
+            print('打开文件失败')
             return
         self.filename = os.path.basename(filepath)
         print(self.filename)
@@ -415,7 +414,12 @@ class APP:
         if self.cap==None :
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
-        main_color(self.cap,self.master,self.output_window,self.progressbar,self.pm,self.skip_num)
+        main_color(self.cap,'front',self.master,
+                   self.output_window,self.progressbar,self.pm,self.skip_num)
+        
+        main_color(self.cap,'back',self.master,
+                   self.output_window,self.progressbar,self.pm,self.skip_num)
+        
         self.refresh()
         self.status = 'color'
         self.timestr = utils.timestr()
@@ -480,8 +484,11 @@ class APP:
         if rtn_ == 'OK':
             tkinter.messagebox.showinfo(message='闪光提取完成')
         else:
-            tkinter.messagebox.showinfo(message='提取过程中止，展示模式不记录数据')
-            self.output_window.textboxprocess.insert('0.0',"提取过程中止，展示模式不记录数据\n")
+            if rtn_ == 'stop':
+                tkinter.messagebox.showinfo(message='提取过程中止，展示模式不记录数据')
+                self.output_window.textboxprocess.insert('0.0',"提取过程中止，展示模式不记录数据\n")
+            else: # rtn_ == 'error'
+                pass
             cv.destroyAllWindows()
         self.light = 1
         self.refresh()
@@ -559,12 +566,8 @@ class APP:
             self.dialog.destroy()
 
     def show_result(self):
-        # tkinter.messagebox.showinfo(message='共提取到%d帧信息，%d次有效刺激' % (len(self.dealer.Theta),len(self.dealer.lighttime)))
-        tkinter.messagebox.showinfo(message='共提取到 %d帧信息，%d帧有效信息，%d次有效刺激' % (self.dealer.num1, self.dealer.num, len(self.dealer.stimulus)))
-
-    def go_help(self):
-        # 放一个演示视频
-        pass
+        tkinter.messagebox.showinfo(message='共提取到 %d帧信息，%d帧有效信息，%d次有效刺激' % 
+        (min(self.dealer.num1,self.dealer.num2), self.dealer.num, len(self.dealer.stimulus)))
 
     
 class ResWindow:

@@ -205,15 +205,24 @@ class Dealer(DataParser):
                         f.write(f'{x:3d}: {theta:.6f}\n')
                     plt_x.append(x)
                     plt_y.append(theta)
-                '''change: 不连续点'''
-                # plt.plot(plt_x,plt_y,c='b')
-                for i in range(1, len(plt_x)):
+
+                plt_assist_f = self.assist_angle_f[sti_ls] if hasattr(self,'assist_angle_f') else None
+                plt_assist_b = self.assist_angle_b[sti_ls] if hasattr(self,'assist_angle_b') else None
+                
+                '''previous change: 不连续点'''
+                '''for i in range(1, len(plt_x)):
                     if abs(plt_y[i] - plt_y[i-1]) > 90:
                         # plt.plot(x[i], y[i], 'o', c='r')  # 绘制跳变点
                         pass
                     else:
-                        plt.plot([plt_x[i-1], plt_x[i]], [plt_y[i-1], plt_y[i]], '-', c='b')
+                        plt.plot([plt_x[i-1], plt_x[i]], [plt_y[i-1], plt_y[i]], '-', c='b')'''
 
+                plt.plot(plt_x, plt_y, c='b')
+                if plt_assist_f is not None:
+                    plt.plot(plt_x, plt_assist_f, c=(0,0.8,0)) # c: (r,g,b)
+                if plt_assist_b is not None:
+                    plt.plot(plt_x, plt_assist_b, c=(0.8,0,0.8))
+                
                 plt.xlabel('x')
                 plt.ylabel('y')
                 plt.title('Plotting Curve')
@@ -408,6 +417,7 @@ class Dealer(DataParser):
             """ 距离刺激帧最近的一帧 """
             idx = np.argmin(np.abs(self.frames - f))
 
+            # ·刺激置于最上层·
             plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=tuple(cbar[i]),zorder=100)
             if flag:
                 plt.scatter(self.X1[idx], self.Y1[idx], color=tuple(cbar[i]),zorder=100)
@@ -429,6 +439,8 @@ class Dealer(DataParser):
         plot_xmid = [self.X_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
         plot_ymid = [self.Y_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
         plt.plot(plot_xmid, plot_ymid,c='b',label='mid')
+
+        # 星星置于中间层
         plt.scatter(plot_xmid[0], plot_ymid[0], color='#FA9A3F', s=50, marker='*', label='start', zorder=50)
         plt.scatter(plot_xmid[-1], plot_ymid[-1], color='#49DBF5', s=50, marker='*', label='end', zorder=50)
         if flag:
@@ -484,7 +496,7 @@ class Dealer(DataParser):
         cnt3 = 0
         # stdoutpb = utils.Stdout_progressbar(self.num-2)
         # stdoutpb.reset()
-        for i in range(len(self.X_mid) - 2):
+        for i in range(self.num - 2):
             if self.frames_adj[i+1] and self.frames_adj[i]: # 连续三点
             # if self.X_mid[i+2][0]-self.X_mid[i+1][0] == 1 and self.X_mid[i+1][0]-self.X_mid[i][0] == 1: # 连续三点
                 cnt1 += 1
@@ -572,17 +584,17 @@ class Dealer(DataParser):
 
 if pstatus == "debug":
     if __name__ == '__main__':
-        data_dealer = Dealer(60, skip_n=1)
+        data_dealer = Dealer(30, skip_n=2)
         data_dealer.parse_light(open('out-light-every.txt','r'), 60)
         # data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
-        # data_dealer.parse_fbpoints(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),60)
         # data_dealer.data_change_ratio(0.012)
         # data_dealer.To_centimeter(0.012)
-        data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),60)
+        # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),60)
+        data_dealer.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         # data_dealer.showPath()
         # data_dealer.showCurve()
         # data_dealer.showAngle(30)
-        data_dealer.showOmega(60)
+        data_dealer.showOmega(30)
     
 class Cheker:
     def __init__(self,cap,status) -> None:
