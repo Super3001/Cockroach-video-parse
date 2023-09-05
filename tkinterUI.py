@@ -15,7 +15,6 @@ import control
 规范tkinterUI.py的书写，槽函数尽量简单一点，把消息提示框放到处理主函数中(optional)
 window size
 
-
 '''
 
 # 项目状态
@@ -364,8 +363,8 @@ class APP:
         self.cap.set(1, 0) # 重置为第一帧
         ret, frame0 = self.cap.read()
         print('ratio:',self.magRatio)
-        cv.imwrite(f'{self.filename}.png', frame0)
-        my_show(frame0,self.magRatio,self.first_middle_point)
+        cv.imwrite(f'src/{self.filename}.png', frame0)
+        my_show(frame0,self.magRatio)
         
     def set_process_multiple(self):
         self.pm = eval(self.e1.get())

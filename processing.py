@@ -29,7 +29,10 @@ def my_show(frame, ratio=1, _time=0):
     # print(center_point)
     h = frame.shape[0]
     w = frame.shape[1]
-    frame = cv.resize(frame, (int(w*ratio), int(h*ratio)))
+    if ratio == 0:
+        frame = cv.resize(frame, (1200, 800))
+    else:
+        frame = cv.resize(frame, (int(w*ratio), int(h*ratio)))
     cv.imshow("window", frame)
     key = cv.waitKey(_time)
     if key == ord('q'):
@@ -1120,7 +1123,7 @@ def tilt(edge, display):
         # edge_show1 = cv.circle(edge_show1,(rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
         # edge_show1 = cv.circle(edge_show1,(rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
         edge_show1 = cv.line(edge_show1, (rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))), (rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))), 255, 2)
-        if my_show(edge_show1):
+        if my_show(edge_show1, _time=100):
             cv2.destroyAllWindows()
             return (None,) * 3
     return rect, angle, len(points)
@@ -1144,7 +1147,7 @@ def contour(cap,background,root,OutWindow,progressBar, skip_n=1, turn_start=1,tu
     cha = cv.subtract(edge(dcut(frame0,domain)),edge(dcut(background,domain)))
     # cha = cv.inRange(cha,120,255)
     if OutWindow and OutWindow.display:
-        if my_show(cha):
+        if my_show(cha, _time=100):
             return 'stop'
     # harris(cha,dcut(frame0,domain))
     rect, angle, num = tilt(cha, OutWindow and OutWindow.display)
@@ -1227,6 +1230,7 @@ if pstatus == "debug":
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    background = cv2.imread(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.mp4.png")
     from tkinter import *
     Prompt = "this is a debug trial "
     class OutputWindow:
@@ -1254,5 +1258,6 @@ if pstatus == "debug":
         window.textboxprocess.insert("0.0", "111\n")
         # main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
         # feature(cap,'front',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
-        feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
+        # feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
+        contour(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10, turn_start=1)
         tier.mainloop()

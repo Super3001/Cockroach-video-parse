@@ -106,9 +106,9 @@ class Dealer(DataParser):
     def segment(self,down,up):
         for i in self.stimulus:
             x,y = [i-0.5*self.fps,i-0.5*self.fps],[down,up]
-            plt.plot(x,y,color="navy")
-            x,y = [i+4.5*self.fps,i+4.5*self.fps],[down,up]
             plt.plot(x,y,color="red")
+            x,y = [i+4.5*self.fps,i+4.5*self.fps],[down,up]
+            plt.plot(x,y,color="navy")
     
     """@depricated: segment and plot in one function"""        
     def segment_plt(self,data:list,xlabel,ylabel,name,colors=['b','y']):
@@ -176,12 +176,11 @@ class Dealer(DataParser):
                 pf = pf + 1
         return frame_sections
             
-    def showAngle(self,fps):
+    def showAngle(self):
             
         """write file and plot simultaneously"""
         with open(f'results\Angle {self.filename},{self.timestr}.txt','w') as f:
             # plt.figure()
-            # num_stimulate = len(self.stimulus)
             f.write('frame_num: angle(deg)')        
             # print(self.durings)
             # print(self.frames[self.durings[0]])
@@ -219,9 +218,9 @@ class Dealer(DataParser):
 
                 plt.plot(plt_x, plt_y, c='b')
                 if plt_assist_f is not None:
-                    plt.plot(plt_x, plt_assist_f, c=(0,0.8,0)) # c: (r,g,b)
+                    plt.plot(plt_x, plt_assist_f, c=(0,0.9,0)) # c: (r,g,b)
                 if plt_assist_b is not None:
-                    plt.plot(plt_x, plt_assist_b, c=(0.8,0,0.8))
+                    plt.plot(plt_x, plt_assist_b, c=(0.9,0,0.9))
                 
                 plt.xlabel('x')
                 plt.ylabel('y')
@@ -270,7 +269,7 @@ class Dealer(DataParser):
         plt.savefig('fig\pAngle_interp.png')
         plt.show()
         
-    def showOmega(self,fps):
+    def showOmega(self):
         # self.adj = []
         # for i in range(len(self.frames)):
         #     if i == 0:
@@ -307,12 +306,12 @@ class Dealer(DataParser):
             
             if self.frames_adj[i] and self.frames_adj[i+1]:
                 
-                omega_center = (self.Theta[i+1] - self.Theta[i]) / fps
+                omega_center = (self.Theta[i+1] - self.Theta[i]) / self.fps
                 if move_flag: # 可以计算摆动角速度
                     omega_front = self.calc_1(i+1)
                     omega_back = self.calc_2(i+1)
             elif self.frames_adj[i]:
-                omega_center = (self.Theta[i] - self.Theta[i-1]) / fps
+                omega_center = (self.Theta[i] - self.Theta[i-1]) / self.fps
                 if move_flag:
                     omega_front = 0
                     omega_back = 0
@@ -346,7 +345,7 @@ class Dealer(DataParser):
                 # self.pOmega.circle(i,omega_move,size=10, line_color="white", fill_color="#4AC298", fill_alpha=0.5)
             
             if flag == 0:
-                if f2sec(f - self.stimulus[stimulate],fps) > -0.5:
+                if f2sec(f - self.stimulus[stimulate],self.fps) > -0.5:
                     flag = 1
                     if stimulate == 0:
                         if move_flag:
@@ -360,7 +359,7 @@ class Dealer(DataParser):
                     # self.pOmega.circle(i,omega_move,size=10, line_color="white", fill_color="green", fill_alpha=0.5)
                     
             else:
-                if f2sec(f - self.stimulus[stimulate],fps) > 4.5:
+                if f2sec(f - self.stimulus[stimulate],self.fps) > 4.5:
                     flag = 0
                     stimulate+=1
                     if stimulate==len(self.stimulus):
@@ -488,7 +487,170 @@ class Dealer(DataParser):
                 plt.savefig(f'fig\pPath_{i+1}.png')
                 plt.show()
         
-    def showCurve(self,):
+    def gen_curve_points(self):
+        curve_point = []
+        cp_indexes = []
+        for i in range(self.num):
+            point = [round(float(self.X_mid[i]),1), round(float(self.Y_mid[i]),1)] # 精度为 0.1px
+            if point not in curve_point:
+                curve_point.append(point)
+                cp_indexes.append([i])
+            else:
+                cp_indexes[-1].append(i)
+        
+        self.curve_point = curve_point
+        self.cp_indexes = cp_indexes
+
+    def showCurve(self):
+        _type = 'arc'
+        self.curvature = np.zeros(self.num)
+        max_curv = 0
+        self.gen_curve_points()
+
+        for i in range(1, len(self.curve_point)-1):
+            r = self.radius_arc_of_points(*(self.curve_point[i-1:i+2]))
+            if r == np.inf or r == 0:
+                curv = 0
+            else:
+                curv = 1 / r
+            if curv > max_curv:
+                max_curv = curv
+            self.curvature[self.cp_indexes[i]] = curv
+
+        """画出所有点的curvature"""
+        plt.figure('pCurve')
+        plt_x = []
+        plt_y = []
+        for i, r in enumerate(self.curvature):
+            if r == 0:
+                # plt.scatter(self.frames[i],0,c='y')
+                pass
+            else:
+                plt_x.append(self.frames[i])
+                plt_y.append(r)
+        plt.plot(plt_x, plt_y, c='b')
+        plt.scatter(self.stimulus, np.zeros(len(self.stimulus)), c='r')
+
+        # 画一条y=0
+        xh = [-1,self.nframe+1]; yh = [0, 0]
+        plt.plot(xh, yh, color='black')  # 绘制直线，设置颜色为红色
+
+        plt.xlabel('number of frame')
+        plt.ylabel(f'curvature({self.str_scale})')
+        plt.title(f'turning curvature')
+        plt.savefig(f'fig\pCurve.png')
+        # plt.show()
+
+        # plt.figure('subpCurve')
+        fig, ax = plt.subplots(ncols=len(self.durings))
+        with open(f'results\Turning Radius {self.filename},{self.timestr}.txt','w') as f:
+            f.write(f'frame_num: curvature({self.str_scale})')
+            i_sti = 0        
+            for i, sti_ls in enumerate(self.durings):
+                # plt.figure(f'pCurve-{i}')
+                plt_x = []
+                plt_y = []
+                sti_flag = 0
+                f.write(f'\nstimulus {i} ({len(sti_ls)} frames):\n')
+                for pf in sti_ls: # pf代表下标idx
+                    pf = int(pf)
+                    if pf >= len(self.curvature): # 最后两帧不算
+                        break
+                    x = self.frames[pf]
+                    r = self.curvature[pf]
+                    if x in self.stimulus:
+                        f.write(f'{x:3d}: {r:.6f} (stimulate)\n')
+                        # plt.scatter(x,r,c='r',zorder=100) # 刺激标志放在最上层
+                        ax[i].scatter(x,r,c='r',zorder=100)
+                        sti_flag = 1
+                        i_sti = i
+                    else:
+                        f.write(f'{x:3d}: {r:.6f}\n')
+                    if r > 0:
+                        plt_x.append(x)
+                        plt_y.append(r)
+                    else:
+                        pass
+                
+                if sti_flag == 0:
+                    # plt.scatter(self.stimulus[i],0,c='r',zorder=100)
+                    ax[i].scatter(self.stimulus[i],0,c='r',zorder=100)
+                    
+                mean_curvature = np.mean(plt_y[i_sti:])
+                std_curvature = np.std(plt_y[i_sti:])
+                print("==="*10)
+                print(mean_curvature, std_curvature)
+
+                ax[i].plot(plt_x,plt_y,c='b')
+                ax[i].set_xlabel('number of frame')
+                ax[i].set_ylabel(f'curvature({self.str_scale})')
+                ax[i].set_ylim(-1, max_curv+1)
+                ax[i].set_title(f'turning curvature-{i+1}\nmean:{mean_curvature:.2f}-std:{std_curvature:.2f}')
+
+                xh = [min(plt_x)-1,max(plt_x)+1]; yh = [0, 0]
+                ax[i].plot(xh, yh, color='black')  # 绘制直线，设置颜色为红色
+                
+                # plt.plot(plt_x,plt_y,c='b')
+                # plt.xlabel('number of frame')
+                # plt.ylabel(f'curvature({self.str_scale})')
+                # plt.title(f'turning curvature-{i+1}-mean:{mean_curvature:.2f}-std:{std_curvature:.2f}')
+                # plt.savefig(f'fig\pCurve-stimulus{i+1}.png')
+                # plt.show()
+                    
+            plt.savefig(f'fig\pCurve-all-stimulus.png')
+            plt.show()
+
+            f.write('end\n\nall frames: \n')
+            for i in range(self.num):
+                # if i > 1 and self.frames[i] - self.frames[i-1] > 1:
+                #     f.write(f'{self.frames[i]:3d}: ----- black -----\n')
+                f.write(f'{self.frames[i]:3d}: {self.curvature[i]:.6f}\n')
+            f.write('end\n')
+
+    def radius_arc_of_points(self, A, B, C):
+        x1, y1 = A
+        x2, y2 = B
+        x3, y3 = C
+        if np.all(A == B) or np.all(B == C) or np.all(A == C):
+            return 0
+        if (y2 - y1)*(x3 - x1) == (y3 - y1)*(x2 - x1): # 共线
+            return np.inf 
+        
+        # 防止k(中垂线的斜率)为正无穷
+        if y1 == y2:
+            # 交换B和C
+            x2, x3 = x3, x2
+            y2, y3 = y3, y2
+        elif y2 == y3:
+            # 交换A和B
+            x1, x2 = x2, x1
+            y1, y2 = y2, y1
+
+        # 计算中点M和N
+        M = np.array([(x1 + x2) / 2, (y1 + y2) / 2])
+        N = np.array([(x2 + x3) / 2, (y2 + y3) / 2])
+
+        # 计算斜率k1和k2
+        # k1 = -1 / ((y2 - y1) / (x2 - x1))
+        # k2 = -1 / ((y3 - y2) / (x3 - x2))
+        k1 = (x1 - x2) / (y2 - y1)
+        k2 = (x2 - x3) / (y3 - y2)
+
+        # 计算直线L1和L2的截距b1和b2
+        b1 = M[1] - k1 * M[0]
+        b2 = N[1] - k2 * N[0]
+
+        # 计算圆心的坐标
+        x_center = (b2 - b1) / (k1 - k2)
+        y_center = k1 * x_center + b1
+
+        # 计算圆的半径
+        radius = np.sqrt((x1 - x_center)**2 + (y1 - y_center)**2)
+
+        return radius
+
+    '''旧版showCurve'''
+    '''def showCurve(self,):
         self.radius = []
         max_r = 0
         cnt1 = 0
@@ -561,9 +723,8 @@ class Dealer(DataParser):
                         else:
                             plt.scatter(x,0,c='y')
                 if sti_flag == 0:
-                    plt.scatter(self.stimulus[i],0,c='r',zorder=100) # 解决跳读没有刺激标志的问题
+                    plt.scatter(self.stimulus[i],0,c='r',zorder=100)
                     
-                # print(plt_x)
                 plt.plot(plt_x,plt_y,c='b')
                 plt.xlabel('number of frame')
                 plt.ylabel(f'radius({self.str_scale})')
@@ -574,10 +735,10 @@ class Dealer(DataParser):
             f.write('end\n\nall frames: \n')
             for i in range(self.num - 2):
                 if i > 1 and self.frames[i] - self.frames[i-1] > 1:
-                    f.write(black_sign+'\n')
+                    f.write(f'{self.frames[i]:3d}: ----- black -----\n')
                 f.write(f'{self.frames[i]:3d}: {self.radius[i]:.6f}\n')
             f.write('end\n')
-        return
+        return'''
         
     def showDist(self):
         pass
@@ -585,16 +746,16 @@ class Dealer(DataParser):
 if pstatus == "debug":
     if __name__ == '__main__':
         data_dealer = Dealer(30, skip_n=2)
-        data_dealer.parse_light(open('out-light-every.txt','r'), 60)
+        data_dealer.parse_light(open('out-light-every.txt','r'), 30)
         # data_dealer.parse_fbpoints(open('out-meanshift-1.txt','r'),open('out-meanshift-2.txt','r'),30)
         # data_dealer.data_change_ratio(0.012)
         # data_dealer.To_centimeter(0.012)
         # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),60)
         data_dealer.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         # data_dealer.showPath()
-        # data_dealer.showCurve()
-        # data_dealer.showAngle(30)
-        data_dealer.showOmega(30)
+        data_dealer.showCurve()
+        # data_dealer.showAngle()
+        # data_dealer.showOmega()
     
 class Cheker:
     def __init__(self,cap,status) -> None:

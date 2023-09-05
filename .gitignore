@@ -6,3 +6,4 @@ _*.py
 *.xml
 *.iml
 *.mp4
+.vscode

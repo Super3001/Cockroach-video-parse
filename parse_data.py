@@ -274,14 +274,18 @@ class DataParser:
             point_b = np.array([self.X2[i], self.Y2[i]])
             dist = np.linalg.norm(point_b - point_f)
             dx, dy = point_b - point_f # numpy.array解包
-            if dx < 0.001:
-                k = 0
+            if abs(dx) < 1e-6: # 竖直
+                if abs(dy) < 1e-6:
+                    raise Exception("前后点重合")
+                k = np.inf
+                theta = 90
             else:
-                k = dy / dx
+                k = - dy / dx # 因为之前 y = -y
+                theta = atan(k)*180/pi
             
             self.D.append(dist)
             self.K.append(k)
-            self.Theta.append(atan(k)*180/pi) 
+            self.Theta.append(theta) 
         self.K = np.array(self.K); self.D = np.array(self.D); self.Theta = np.array(self.Theta)
 
         # 注：theta要连续，而atan生成的不连续，所以要处理
@@ -311,7 +315,7 @@ class DataParser:
         
         ''' end '''
 
-    def smooth_thetas(self,threshold):
+    def smooth_thetas(self,threshold: np.array):
         smoothed_thetas = self.Theta.copy()
         for i in range(1, len(smoothed_thetas)):
             diff = smoothed_thetas[i] - smoothed_thetas[i-1]

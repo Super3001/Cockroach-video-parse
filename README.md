@@ -140,8 +140,6 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 - [x] central-control mode ["release","debug"]
 
-- [ ] Dynamic window size
-
 - [x] update display_window
 
 - write about *minis*, balance accuracy with time(/)
@@ -174,10 +172,13 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 - [x] 调整kernal生成方式
 - [x] 标志点特征旋转
 - [ ] 窗口大小实现响应式布局
-- [ ] 角度结果跳变
+- [x] 角度结果跳变
 
 9.1
-- [ ] 加入辅助角度
+- [x] 加入辅助角度
+
+9.3
+- [ ] update 轮廓识别(?)
 
 
 My Log:

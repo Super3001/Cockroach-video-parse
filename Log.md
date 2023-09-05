@@ -33,3 +33,8 @@ version 0.7.1
 - 四种方法的主函数都加上`kind`参数
 
 - 加入turn_start和turn_end
+
+9.3.2023
+
+- 修改了画图逻辑（主要是showCurve）和代码
+
