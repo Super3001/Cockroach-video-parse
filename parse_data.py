@@ -345,8 +345,8 @@ class DataParser:
         self.X_mid = []
         self.Y_mid = []
         for i in data1:
-            frame, coords = i.split()
-            x,y = tuple(coords.split(','))
+            frame, x, y = i.split()
+            x = x[:-1] # (x, y)格式，去掉','
             x=float(x)
             y=-float(y)
             frame = int(frame)
@@ -361,9 +361,11 @@ class DataParser:
             theta = float(theta)
             self.Theta.append(theta)
         self.num2 = len(self.Theta)
-        assert self.num1 == self.num2, "Wrong Data"
+        # assert self.num1 == self.num2, "Wrong Data"
 
-        # 数据过滤(两种写法均可)
+        self.nframe = self.num1
+
+        # 对帧
         """ 有indice和mask两种写法，考虑到被过滤掉的数据少于保留的数据，这里采用mask的写法"""
         mask = np.ones((self.num1,))
         for i in range(self.num1):
@@ -376,7 +378,7 @@ class DataParser:
         self.frames = np.array(self.frames)[mask>0]
         self.num = len(self.frames)
         assert self.num > 0, "Data error"
-        self.frames_adj= np.zeros((self.num-1,))
+        self.frames_adj = np.zeros((self.num-1,))
         for i in range(self.num-1):
             if self.frames[i+1] - self.frames[i] <= self.skip_n:
                 self.frames_adj[i] = 1

@@ -1,7 +1,7 @@
 # deal_data.py
 
 import numpy as np
-from math import comb, ceil, pi, sqrt, atan
+from math import comb, ceil, pi, atan
 from tkinter.messagebox import showinfo
 from scipy import interpolate
 import matplotlib.pyplot as plt
@@ -111,7 +111,7 @@ class Dealer(DataParser):
             plt.plot(x,y,color="navy")
     
     """@depricated: segment and plot in one function"""        
-    def segment_plt(self,data:list,xlabel,ylabel,name,colors=['b','y']):
+    def segment_plt(self,data:list,xlabel,ylabel,name,colors=('b','y')):
         plt.figure()
         num_stimulate = len(self.stimulus)
         for i, stimulus in enumerate(self.stimulus):
@@ -121,7 +121,7 @@ class Dealer(DataParser):
             sub_Y = []
             left  = stimulus - ceil(self.before*self.fps)
             right = stimulus + ceil(self.after *self.fps)
-            for j in len(range(left, right)): # 取上界，包括[before, after]区间
+            for j in range(left, right): # 取上界，包括[before, after]区间
                 if j in self.frames:
                     sub_X.append(j)
                     sub_Y.append(data[self.frames.index(j)])
@@ -208,14 +208,6 @@ class Dealer(DataParser):
                 plt_assist_f = self.assist_angle_f[sti_ls] if hasattr(self,'assist_angle_f') else None
                 plt_assist_b = self.assist_angle_b[sti_ls] if hasattr(self,'assist_angle_b') else None
                 
-                '''previous change: 不连续点'''
-                '''for i in range(1, len(plt_x)):
-                    if abs(plt_y[i] - plt_y[i-1]) > 90:
-                        # plt.plot(x[i], y[i], 'o', c='r')  # 绘制跳变点
-                        pass
-                    else:
-                        plt.plot([plt_x[i-1], plt_x[i]], [plt_y[i-1], plt_y[i]], '-', c='b')'''
-
                 plt.plot(plt_x, plt_y, c='b')
                 if plt_assist_f is not None:
                     plt.plot(plt_x, plt_assist_f, c=(0,0.9,0)) # c: (r,g,b)
@@ -377,6 +369,10 @@ class Dealer(DataParser):
                     
         # self.pOmega.xaxis.axis_label = "帧序号"
         # self.pOmega.yaxis.axis_label = "转向角速度"
+
+        xh = [-1,self.nframe+1]; yh = [0, 0]
+        plt.plot(xh, yh, color='black')  # 绘制直线，设置颜色为...
+        
         plt.xlabel('number of frame')
         plt.ylabel('angular speed(deg/s)')
         plt.title('turning omega curve')
@@ -402,15 +398,9 @@ class Dealer(DataParser):
         
     def showPath(self,):
         plt.figure('pPath')
-        # print(len(self.frames))
         flag = 1 if len(self.X1) > 0 else 0 # if front and back path can be drawn
-
         
         cbar = plot.colorbar_between_two(length=len(self.stimulus))
-        # print(cbar)
-        # print('self.frames',self.frames)
-        # print('self.stimulus',self.stimulus)
-        # print('self.durings',self.durings)
         
         for i, f in enumerate(self.stimulus):
             """ 距离刺激帧最近的一帧 """
@@ -422,18 +412,6 @@ class Dealer(DataParser):
                 plt.scatter(self.X1[idx], self.Y1[idx], color=tuple(cbar[i]),zorder=100)
                 plt.scatter(self.X2[idx], self.Y2[idx], color=tuple(cbar[i]),zorder=100)
 
-        # for i,frame in enumerate(self.frames):
-        #     if self.minDis(frame) < 1:
-        #         print(frame)
-        #         print(self.X_mid[i],self.Y_mid[i])
-        #         plt.scatter(self.X_mid[i], self.Y_mid[i],c='r')
-        #         if flag:
-        #             plt.scatter(self.X1[i], self.Y1[i], c='r')
-        #             plt.scatter(self.X2[i], self.Y2[i], c='r')
-                
-        # plot_xmid = [i[1] for i in self.X_mid if self.in_range(i[0])]
-        # print(self.durings); return
-        
         """ 画出所有在刺激范围内的点 """
         plot_xmid = [self.X_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]
         plot_ymid = [self.Y_mid[i] for i in range(self.num) if self.in_range(self.frames[i])]

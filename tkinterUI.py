@@ -142,8 +142,8 @@ class APP:
         self.bt3 = Button(rightframe,width=15,height=1,text='颜色识别',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_color)
         self.bt3.pack(side=TOP,pady=10)
-        self.bt4 = Button(rightframe,width=15,height=1,text='轮廓识别',
-                          font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_contour)
+        self.bt4 = Button(rightframe,width=15,height=1,text='camshift',
+                          font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_camshift)
         self.bt4.pack(side=TOP,pady=10)
         self.bt5 = Button(rightframe,width=15,height=1,text='标志点特征识别',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_feature)
@@ -269,16 +269,16 @@ class APP:
         # properties
         self.cap = None
         if(self.project_status == 'debug'):
-            self.status = 'meanshift'
+            self.status = 'contour'
             self.light = 1
-            self.fps = 60
+            self.fps = 30
             self.filename = 'example.mp4'
             # self.magRatio = 0.0308*50
             self.magRatio = 0
             self.Ratio_to_cm = 0.0308
             self.timestr = utils.timestr()
             self.detect_mark_str = f'{self.status}-{self.timestr}'
-            self.skip_num = 5
+            self.skip_num = 1
         else:
             self.status = None
             self.light = 0
@@ -461,6 +461,16 @@ class APP:
         self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
+    def go_camshift(self):
+        if self.cap==None :
+            tkinter.messagebox.showinfo(message='请先导入文件')
+            return
+        '''camshift被包装在contour_camshift中'''
+        contour(self.cap,None,self.master,self.output_window,self.progressbar,self.skip_num)
+        self.status = 'contour'
+        self.timestr = utils.timestr()
+        self.detect_mark_str = f'{self.status}-{self.timestr}'
+
     def go_feature(self):
         if self.cap == None:
             tkinter.messagebox.showinfo(message=msg_NoVideo)
@@ -586,9 +596,8 @@ class ResWindow:
         button4 = Button(master, text='返回', width=20, font=('GB2312', 18), background='Tan', command=master.destroy)
         button4.grid(row=3, column=0, sticky=W)
         
- 
     def show_angle(self):
-        self.dealer.showAngle(self.dealer.fps)
+        self.dealer.showAngle()
         self.master.lift()   
         
     def show_path(self):
@@ -597,7 +606,7 @@ class ResWindow:
         self.master.lift()
         
     def show_move(self):
-        self.dealer.showOmega(self.dealer.fps)
+        self.dealer.showOmega()
         self.master.lift()
         
 class OutputWindow:

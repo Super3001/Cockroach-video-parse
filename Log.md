@@ -38,3 +38,8 @@ version 0.7.1
 
 - 修改了画图逻辑（主要是showCurve）和代码
 
+9.6.2023
+
+- contour(lr)写得不规范
+
+- 隐藏方法：camshift
