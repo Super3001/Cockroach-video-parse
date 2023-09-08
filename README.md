@@ -153,9 +153,9 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 - [x] 是否需要parse data过程中都带着frame number -> 所有的数据都进行有效化（
 
       X1, Y1, X2, Y2是未过滤的，通过self.frames进行过滤
-    
+        
       X_mid, Y_mid, K, D, Theta都是过滤之后的
-    
+        
       这样统一了有效数据的帧数，可以用indice和mask写法，优先使用mask）
 
 - [x] 数据np.array化
@@ -178,40 +178,8 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 - [x] 加入辅助角度
 
 9.3
-- [ ] update 轮廓识别(?)
+- [x] update 轮廓识别(?)
 
+8.20
 
-My Log:
-
-5.25 afternoon update radius result output(file:deal_with_data.py) and not push yet and delete file...
-
-5.29 I wonder why the scale of window changed (as former 1200x700 now 1600x850 to the same size)
-
-6.17 write skip_read format like this: 
-
-    ```
-    if skip_n > 1 and cnt % skip_n != 1:
-    
-        continue
-    ```
-
-  7.10 write stdout_progessbar like this:
-
-    ```
-    初始化：
-    stdoutpb = Stdout_progressbar(num, not(OutWindow and OutWindow.display))
-    cnt = 0
-    stdoutpb.reset(skip_n)
-    
-    每次迭代：
-      cnt += 1
-      ...(process)
-      stdoutpb.update(cnt)
-    
-    结束迭代：
-      if ...(not success):
-        stdoutpb.update(-1)
-        break
-    ```
-
-7.11 pm不一定是整数，但可能会有误差 
+- [ ] 加入Bokeh

@@ -214,7 +214,7 @@ def color_deal(frame,midval:tuple,dis:int,pre_state,thresh_dist,OutWindow=None):
 
         linked = distances < thresh_dist
 
-        ''' linked相当于所有中心点形成的无向图的邻接矩阵，下面需要计算每个强连通分量的中心点
+        ''' linked相当于所有中心点形成的无向图的邻接矩阵，下面需要计算每个强连通分量(团？)的中心点
             用kasaraju算法计算强连通分量'''
         # 计算邻接矩阵的转置
         linked_transpose = linked.T

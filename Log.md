@@ -2,6 +2,43 @@
 
 
 
+My Log:
+
+5.25 afternoon update radius result output(file:deal_with_data.py) and not push yet and delete file...
+
+5.29 I wonder why the scale of window changed (as former 1200x700 now 1600x850 to the same size)
+
+6.17 write skip_read format like this: 
+
+    ```
+    if skip_n > 1 and cnt % skip_n != 1:
+    
+        continue
+    ```
+
+  7.10 write stdout_progessbar like this:
+
+    ```
+    初始化：
+    stdoutpb = Stdout_progressbar(num, not(OutWindow and OutWindow.display))
+    cnt = 0
+    stdoutpb.reset(skip_n)
+    
+    每次迭代：
+      cnt += 1
+      ...(process)
+      stdoutpb.update(cnt)
+    
+    结束迭代：
+      if ...(not success):
+        stdoutpb.update(-1)
+        break
+    ```
+
+7.11 pm不一定是整数，但可能会有误差 
+
+
+
 8.19.2023 
 
 version 0.7.0
