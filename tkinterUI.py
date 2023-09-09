@@ -30,8 +30,8 @@ msg_NoVideo = '请先导入视频'
 # 缩放比例 x: cm/px
 View = 50 # 屏幕上50px -> 1cm
 # 窗口大小: 响应式
-WIDTH = 1600
-HEIGHT = 800
+WIDTH = 1520
+HEIGHT = 750
 str_geometryProperty = f'{WIDTH}x{HEIGHT}+50+50'
 # str_geometryProperty = '1200x700+50+50'
 
@@ -86,13 +86,13 @@ class APP:
         self.bt7 = Button(leftframe,width=25,height=3,text='退出',
                           font=("等线",20),bg='orange',fg='black',command=self.quit)
         self.bt7.pack(side=TOP)
-        if self.project_status == 'debug':
-            self.bt_app = Button(leftframe,width=25,height=3,text='重启',
-                            font=("等线",20),bg='orange',fg='black',command=self.restart)
-            self.bt_app.pack(side=TOP)
+        # if self.project_status == 'debug':
+        #     self.bt_app = Button(leftframe,width=25,height=3,text='重启',
+        #                     font=("等线",20),bg='orange',fg='black',command=self.restart)
+        #     self.bt_app.pack(side=TOP)
         
         # middle frame: display and process control
-        self.lb1 = Label(middleframe, text='实验数据处理\n带标记点的蟑螂追踪系统',  #文字支持换行
+        self.lb1 = Label(middleframe, text='实验数据处理\n爬行昆虫追踪系统',  #文字支持换行
                   font=("华文行楷",30),
                   padx=10,
                   pady=10
@@ -250,7 +250,7 @@ class APP:
                         font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_color)
         self.bt3.grid(row=1, column=0, pady=10)
         self.bt4 = Button(rightframe, width=15, height=1, text='轮廓识别',
-                        font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_contour)
+                        font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_camshift)
         self.bt4.grid(row=2, column=0, pady=10)
         self.bt5 = Button(rightframe, width=15, height=1, text='标志点特征识别',
                         font=("等线", 15, "bold"), bg='blue', fg='white', activebackground='green', command=self.go_feature)
@@ -269,7 +269,7 @@ class APP:
         # properties
         self.cap = None
         if(self.project_status == 'debug'):
-            self.status = 'contour'
+            self.status = 'camshift'
             self.light = 1
             self.fps = 30
             self.filename = 'example.mp4'
@@ -467,7 +467,7 @@ class APP:
             return
         '''camshift被包装在contour_camshift中'''
         contour(self.cap,None,self.master,self.output_window,self.progressbar,self.skip_num)
-        self.status = 'contour'
+        self.status = 'camshift'
         self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
 
@@ -528,9 +528,9 @@ class APP:
             file_b = open('out-feature-2.txt','r')
             data_dealer.parse_fbpoints(file_f,file_b,self.fps)
             
-        elif self.status == 'contour':
-            file_center = open('out-contour-center.txt','r')
-            file_angle = open('out-contour-theta.txt','r')
+        elif self.status == 'camshift':
+            file_center = open('out-camshift-center.txt','r')
+            file_angle = open('out-camshift-theta.txt','r')
             data_dealer.parse_center_angle(file_center,file_angle,self.fps)
             
         else:
@@ -585,16 +585,20 @@ class ResWindow:
         self.master = master
         
         master.title('结果查看页面')
-        master.geometry('400x250+600+400')
+        master.geometry('420x375+600+400')
         
         button1 = Button(master, text='轨迹和转向半径', width=20, font=('GB2312', 18), background='Tan', command=self.show_path)
         button1.grid(row=0, column=0, sticky=W)
+        button01 = Button(master, text='转向半径', width=20, font=('GB2312', 18), background='Tan', command=self.show_curve)
+        button01.grid(row=1, column=0, sticky=W)
         button2 = Button(master, text='角度', width=20, font=('GB2312', 18), background='Tan', command=self.show_angle)
-        button2.grid(row=1, column=0, sticky=W)
+        button2.grid(row=2, column=0, sticky=W)
         button3 = Button(master, text='角速度和摆动角速度', width=20, font=('GB2312', 18), background='Tan', command=self.show_move)
-        button3.grid(row=2, column=0, sticky=W)
+        button3.grid(row=3, column=0, sticky=W)
+        button03 = Button(master, text=' 精度：前后点距离变化 ', width=20, font=('GB2312', 18), background='Tan', command=self.show_dist)
+        button03.grid(row=4, column=0, sticky=W)
         button4 = Button(master, text='返回', width=20, font=('GB2312', 18), background='Tan', command=master.destroy)
-        button4.grid(row=3, column=0, sticky=W)
+        button4.grid(row=5, column=0, sticky=W)
         
     def show_angle(self):
         self.dealer.showAngle()
@@ -602,11 +606,18 @@ class ResWindow:
         
     def show_path(self):
         self.dealer.showPath()
+        self.master.lift()
+
+    def show_curve(self):
         self.dealer.showCurve()
         self.master.lift()
         
     def show_move(self):
         self.dealer.showOmega()
+        self.master.lift()
+        
+    def show_dist(self):
+        self.dealer.showDist()
         self.master.lift()
         
 class OutputWindow:
@@ -658,6 +669,12 @@ def main():
     root.geometry(str_geometryProperty)
     root.mainloop()
     
+def Reswindow_main():
+    root = Tk()
+    app = ResWindow(root, pstatus)
+    root.mainloop()
+    
 if __name__ == '__main__':
     pstatus = "debug"
     main()
+    # Reswindow_main()

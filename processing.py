@@ -57,7 +57,7 @@ def my_show(frame, ratio=1, _time=0):
 """"""
 def restrict_to_boundary(domain, h, w):
     """
-        domain: yyxx
+        domain: `y,y,x,x`
     """
     return (
         max(domain[0], 0),
@@ -131,7 +131,7 @@ def cleanout(points, domain):
         
     return cleaned_points
 
-def print_mid_point(rect):
+def print_mid_point(rect: list|tuple):
     if len(rect) == 4:
         x = (rect[2]+rect[3])/2
         y = (rect[0]+rect[1])/2
@@ -363,10 +363,12 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
             OutWindow.textboxprocess.delete('0.0','end')
             OutWindow.textboxprocess.insert('0.0','前点颜色(BGR)'+str(midval_f))
             OutWindow.textboxprocess.insert('0.0',"帧序号：[中心点坐标]\n")
-        
-        showinfo(message='前点颜色(BGR)'+str(midval_f)+' ...请等待')
+            file = None
+        else:
+            file = open('out-color-1.txt','w')
+            
+        # showinfo(message='前点颜色(BGR)'+str(midval_f)+' ...请等待')
         midval = midval_f
-        file = open('out-color-1.txt','w')
     else:
         showinfo('','请提取后点颜色，确定按回车')
         midval_b = Trc.tract_color(frame0)
@@ -376,9 +378,11 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
             OutWindow.textboxprocess.delete('0.0','end')
             OutWindow.textboxprocess.insert('0.0','后点颜色(BGR)'+str(midval_b))
             OutWindow.textboxprocess.insert('0.0',"帧序号：[中心点坐标]\n")
-        showinfo(message='后点颜色(BGR)'+str(midval_b)+' ...请等待')
+            file = None
+        else:
+            file = open('out-color-2.txt','w')
+            
         midval = midval_b
-        file = open('out-color-2.txt','w')
     
     cap.set(cv.CAP_PROP_POS_FRAMES, 0) # 重置为第一帧
     domain = (0,frame0.shape[0],0,frame0.shape[1]) # 上下左右
@@ -403,6 +407,7 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
 
             rtn, center = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],midval, 15, pre_state, np.linalg.norm(size) // 10, OutWindow)
             # thresh_dist = np.linalg.norm(size) // 10
+            center_0 = (center[0]+domain[0], center[1]+domain[2])
             
             if rtn==0:
                 pre_state = -1
@@ -429,20 +434,20 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
                     if my_show(dcut(frame_show, domain_show),ratio=4, _time=100):
                         cv.destroyAllWindows()
                         break
-                    printb(str(cnt)+': '+print_mid_point(center), OutWindow)
+                    printb(str(cnt)+': '+print_mid_point(center_0), OutWindow)
                 else:
-                    file.write(f'{cnt} {print_mid_point(center)}\n') # standard format
+                    file.write(f'{cnt} {print_mid_point(center_0)}\n') # standard format
 
                 pre_state = 1
 
             bar()
         # while
         
-    file.close()
-    cv.destroyAllWindows() 
     if OutWindow and OutWindow.display:
+        cv.destroyAllWindows() 
         pass
     else:
+        file.close()
         showinfo(message='检测完成！')
     return 'ok'
 
@@ -592,6 +597,15 @@ def middle_point(rect:list):
     return (y,x)
     
 def Magnify(cap, root):
+    """get the magnify ratio in processing
+
+    Args:
+        cap (cv.CAP): the video
+        root (tk.Tk): root window
+
+    Returns:
+        float, float, (int, int): body_length(px), real_length(cm), middle_point
+    """
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     ret, frame0 = cap.read()
     Trc = Tractor()
@@ -610,7 +624,7 @@ def Magnify(cap, root):
 '''之前写的旋转函数，现在用cv2的函数实现'''
 def rotate(img, angle, center=None, scale=1.0):
     """
-        param:
+        @param:
             img: the img to be rotated
             angle: the angle to rotate the img (in degree)
             center: the center of the img
@@ -1238,8 +1252,8 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
     if OutWindow and OutWindow.display:
         pass
     else:
-        file_theta = open('out-contour-theta.txt','w')
-        file_center = open('out-contour-center.txt','w')
+        file_theta = open('out-camshift-theta.txt','w')
+        file_center = open('out-camshift-center.txt','w')
 
     # PROCESS PREWORK
     showinfo(message='请拖动选择初始矩形框(整个)，之后回车')
@@ -1345,7 +1359,6 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
         showinfo(message='检测完成!')
     cv2.destroyAllWindows()
     return 'OK'
-
 
 """轮廓方法识别主函数：线性回归"""
 def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_start=1,turn_end=0):
@@ -1463,11 +1476,12 @@ class FakeMs:
         self.cnt += 1
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.mp4")
+    # cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.MOV")
+    cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    background = cv2.imread(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.mp4.png")
+    # background = cv2.imread(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.MOV.png")
     from tkinter import *
     Prompt = "this is a debug trial "
     class OutputWindow:
@@ -1497,6 +1511,6 @@ if pstatus == "debug":
         # feature(cap,'front',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
         # feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
         # contour(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10, turn_start=1)
-        contour(cap,None,root=FakeMs(),OutWindow=None,progressBar=dict(),skip_n=1, turn_start=1)
+        contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
 
         # tier.mainloop()

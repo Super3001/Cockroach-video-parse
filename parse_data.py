@@ -109,7 +109,7 @@ class DataParser:
         nframe_1 = int(nframe_1)
         for i in data1:
             frame, coords = i.split()
-            x,y = tuple(coords.split(','))
+            y,x = tuple(coords.split(','))
             x=float(x)
             y=-float(y)
             # frame = int(frame)
@@ -123,7 +123,7 @@ class DataParser:
         nframe_2 = int(nframe_2)
         for i in data2:
             frame, coords = i.split()
-            x,y = tuple(coords.split(','))
+            y,x = tuple(coords.split(','))
             x=float(x)
             y=-float(y)
             self.X2[frame] = x

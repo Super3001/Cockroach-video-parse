@@ -30,6 +30,11 @@
         "imshow border for feature method": {
             "value": 20,
             "unit": "px"
+        },
+        "identifier generate kernal kind": {
+            "value": "uniform",
+            "unit": "str",
+            "all": ["uniform","sin"]
         }
 
     },
@@ -48,6 +53,13 @@
         "min stimulus interval": {
             "value": 0.5,
             "unit": "second"
+        }
+    },
+    "dealing":{
+        "curvature": {
+            "value": "mean",
+            "unit": "str",
+            "all": ["arc","mean","der"]
         }
     },
     "other":{

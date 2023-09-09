@@ -9,7 +9,15 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 2. 标志点和环境没有明显颜色差异的，不要用color
 3. 使用轮廓识别需要预先处理好背景图，可以利用“展示第一帧”功能导出第一帧图像，之后再进行抠图处理
 4. 使用轮廓识别不能输出摆动角速度
-5. 四种识别方法的比较
+
+
+9.9
+1. pPath只画了刺激范围内的点
+2. pAngle-interp画了所有点
+3. pOmega只画了刺激范围内的点
+4. tract_point用一套新框架(function-reset_function递归)解决了选点的一系列问题
+
+## 四种识别方法的比较
 
 | method      | 速度 | 精度 | 重新定位 |
 | :--:        | :--: | :--: | :--:    |
@@ -171,7 +179,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 7.14 consult with Yuli:
 - [x] 调整kernal生成方式
 - [x] 标志点特征旋转
-- [ ] 窗口大小实现响应式布局
+窗口大小实现响应式布局(/)
 - [x] 角度结果跳变
 
 9.1
@@ -180,6 +188,8 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 9.3
 - [x] update 轮廓识别(?)
 
-8.20
+- [ ] 加入Bokeh(?)
 
-- [ ] 加入Bokeh
+9.8
+- [ ] 优化处理方法(data dealing)
+- [ ] tractor的取消提示
