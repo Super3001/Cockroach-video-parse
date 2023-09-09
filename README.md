@@ -15,17 +15,18 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 1. pPath只画了刺激范围内的点
 2. pAngle-interp画了所有点
 3. pOmega只画了刺激范围内的点
-4. tract_point用一套新框架(function-reset_function递归)解决了选点的一系列问题
+
 
 ## 四种识别方法的比较
 
-| method      | 速度 | 精度 | 重新定位 |
-| :--:        | :--: | :--: | :--:    |
-| meanshift   | 快   | 较高 | ok | 
-| color       | 较快 | 较高 | ok |
-| contour     | 较慢 | 一般 | ok |
-| contour+cnn | 较慢 | 较高 | ok |
-| feature     | 较快 | 高   | 困难 |
+| method      | 速度 | 精度 | 识别标志点 | 重新定位 |
+| :--:        | :--: | :--: | :--:     | :--:    |
+| meanshift   | 快   | 较高 | yes | ok | 
+| color       | 较快 | 较高 | yes | ok |
+| camshift    | 快   | 较高 | no  | ok |
+| contour     | 较慢 | 一般 | no  | ok |
+| contourCNN  | 较快 | 较高 | no  | ok |
+| feature     | 较慢 | 高   | yes | 困难 |
 
 ## 功能实现：
 
@@ -50,9 +51,11 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 2. 中间文件和最终输出文件统一到一个格式（待完成）
 3. 统一用i或者idx（或者pf）表示下标，f或者frame表示帧数
 
-
 4. 记录数据的格式标准为int或者float一位小数（根据精度）. '{cnt} {value1,value2,...}'
 5. 处理数据的格式标准为... np.ndarray
+
+6. tract_point用一套新框架(function-reset_function递归)解决了选点的一系列问题
+   monitor_show只记录状态，不作处理。处理通过function, reset_function或者外部函数
 
 ## To do List:
 
@@ -193,3 +196,6 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 9.8
 - [ ] 优化处理方法(data dealing)
 - [ ] tractor的取消提示
+
+9.9
+- [] tractor双击放大

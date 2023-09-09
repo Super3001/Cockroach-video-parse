@@ -36,5 +36,12 @@
 
 1. 文件句柄的打开与否与是否打开展示有关！
 
-2. & 0xFF error
-3. 
+2. & 0xFF error[x]
+
+3. lift报错问题
+
+4. destroyWindow报错问题
+
+5. OutWindow已关闭报错问题(feature)
+
+6. 

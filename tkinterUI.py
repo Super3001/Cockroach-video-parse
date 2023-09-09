@@ -269,7 +269,7 @@ class APP:
         # properties
         self.cap = None
         if(self.project_status == 'debug'):
-            self.status = 'camshift'
+            self.status = 'feature'
             self.light = 1
             self.fps = 30
             self.filename = 'example.mp4'
@@ -526,7 +526,7 @@ class APP:
         elif self.status == 'feature':
             file_f = open('out-feature-1.txt','r')
             file_b = open('out-feature-2.txt','r')
-            data_dealer.parse_fbpoints(file_f,file_b,self.fps)
+            data_dealer.parse_feature_result(file_f,file_b,self.fps)
             
         elif self.status == 'camshift':
             file_center = open('out-camshift-center.txt','r')

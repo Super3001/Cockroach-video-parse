@@ -802,16 +802,16 @@ if pstatus == "debug":
     if __name__ == '__main__':
         data_dealer = Dealer(30, skip_n=10)
         data_dealer.parse_light(open('out-light-every.txt','r'), 30)
-        data_dealer.parse_fbpoints(open('out-color-1.txt','r'),open('out-color-2.txt','r'),30)
+        # data_dealer.parse_fbpoints(open('out-color-1.txt','r'),open('out-color-2.txt','r'),30)
         # data_dealer.data_change_ratio(0.012)
         # data_dealer.To_centimeter(0.012)
         # data_dealer.parse_center_angle(open('out-camshift-center.txt','r'),open('out-camshift-theta.txt','r'),60)
-        # data_dealer.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
+        data_dealer.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         # data_dealer.showPath()
-        # data_dealer.showCurve()
+        data_dealer.showCurve()
         # data_dealer.showAngle()
         # data_dealer.showOmega()
-        data_dealer.showDist()
+        # data_dealer.showDist()
     
 class Cheker:
     def __init__(self,cap,status) -> None:

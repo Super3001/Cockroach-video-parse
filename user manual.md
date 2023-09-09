@@ -79,10 +79,10 @@ python main.py
 | :--:        | :--: | :--: | :--:     | :--:    |
 | meanshift   | 快   | 较高 | yes | ok | 
 | color       | 较快 | 较高 | yes | ok |
-| camshift    | 快   | 高   | no  | ok |
+| camshift    | 快   | 较高 | no  | ok |
 | contour     | 较慢 | 一般 | no  | ok |
 | contourCNN  | 较快 | 较高 | no  | ok |
-| feature     | 较快 | 高   | yes | 困难 |
+| feature     | 较慢 | 高   | yes | 困难 |
 
 各种处理方法实现方式及应用场景：
 
@@ -126,3 +126,8 @@ python main.py
 
 ### 9 软件展示
 
+### 10 用户体验改进部分
+
+由于软件设计和编写过程中的时间、思考量上的不足，有一些问题尚未解决，也会有很多改进的空间。
+
+例如：在选点、选框时应该增加一个双击放大的功能。

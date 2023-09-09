@@ -327,9 +327,9 @@ class Identifier(Tractor):
             self.K = self.normalize(self.K)
     
     def select_window(self,frame):
-        _rtn = -1
         '''旧的写法'''
-        '''while _rtn < 0:
+        ''' _rtn = -1
+            while _rtn < 0:
             _rtn = self.monitor_show(frame, function = self.mouse)
             if _rtn == 1:
                 cv2.destroyAllWindows()
@@ -339,8 +339,31 @@ class Identifier(Tractor):
                 # return g_rect, minis
                 return self.gbRect, []
             else:
-                cv2.destroyWindow("roi") '''           
+                cv2.destroyWindow("roi") '''
         
+        _rtn = self.monitor_show(frame, function = self.mouse, reset_function = self.idf_reset)
+        # if _rtn == 1:
+        if self.status == 'cancel':
+            print('cancel...')
+            cv2.destroyAllWindows()
+            return (-1,)*4, []
+        # elif _rtn == 0:
+        elif self.status == 'done':
+            print('done')
+            cv2.destroyAllWindows()
+            self.generate_kernal(kind='sin')
+            # return g_rect, minis
+            return self.gbRect, []
+        else:
+            print("==="*15)
+            print('unknown status... reset to none')
+            self.status == 'none'
+            return (-2,)*4, []
+        
+    def idf_reset(self):
+        print('reset')
+        cv2.destroyWindow("roi")
+           
     def mouse(self,event,x,y,flags,frame):
         frame_show = frame.copy()
         if event == cv2.EVENT_LBUTTONDOWN:  # 左键点击,则在原图打点

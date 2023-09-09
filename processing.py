@@ -869,7 +869,10 @@ def rect_points(points):
     return (min(Y), max(Y), min(X), max(X))
 
 """特征提取的主函数"""
-def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1, turn_start=1, turn_end=0):
+def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1, turn_start=1, turn_end=0) -> 0|1:
+    """
+    return: 0|1 represents ok | quit
+    """
     offset = 5
     cap.set(cv.CAP_PROP_POS_FRAMES, turn_start - 1)
     frame_num = cap.get(7) # 获取视频总帧数
@@ -882,11 +885,12 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     Idf = Identifier()
     showinfo(message='请拖动选择初始矩形框，之后回车')
     rtn_ = Idf.select_window(frame0)
-    if rtn_ == 'q': # 用户取消
-        printb('', OutWindow)
-        return
-
+    
     (x,y,w,h), minis = rtn_ # minis未启用
+    if x < 0:
+        printb('用户取消', OutWindow)
+        return 1
+
     # 如果是展示模式，输出到窗口，否则打开文件句柄
     if OutWindow and OutWindow.display:
         printb("0 :", OutWindow)
@@ -931,8 +935,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
         root.update()
 
         frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        if OutWindow and OutWindow.display:
-            printb(f'{cnt} :', OutWindow)
+
         max_value = -1e6
         max_angle = pre_angle
         max_angle_pos = (-1, -1)
@@ -969,6 +972,8 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
             if OutWindow and OutWindow.display:
                 if my_show(frame, ratio=1, _time=100):
                     return 1
+                printb('max_value: ' + str(max_value), OutWindow)
+                printb('black', OutWindow)
                 print('max_value:', max_value)
                 print('black')
                 print(f'{cnt} {"===" * 10} {cnt}')
@@ -1002,6 +1007,9 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
                 cv.destroyAllWindows()
                 return 1
 
+            printb('max_value: ' + str(max_value), OutWindow)
+            printb('now_angle: ' + str(max_angle), OutWindow)
+            printb('now_pos: ' + str(max_pos_center), OutWindow)
             print('max_value:', max_value)
             print('now_pos:', str(max_pos_center))
             print('max_angle:', str(max_angle))
@@ -1013,6 +1021,8 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
         pre_angle = max_angle
         pre_state = 1 # normal
 
+        if OutWindow and OutWindow.display:
+            printb(f'{cnt} {"==="*10} {cnt}', OutWindow)
         stdoutpb.update(cnt)
 
     # 结束
@@ -1155,6 +1165,17 @@ def cv_show(name, img):
     cv.waitKey(0)
     cv.destroyAllWindows()
 
+def to_hsv(img: Grayimg):
+    # 创建一个与灰度图像相同大小的全零数组
+    hsv_image = np.zeros(img.shape + (3,))
+
+    # 将灰度图像复制到HSV图像的亮度通道
+    hsv_image[:,:,0] = img
+    hsv_image[:,:,1] = 1
+    hsv_image[:,:,2] = 0.5
+    
+    return hsv_image
+
 def edge(img: BGRimg, _operator='sobel') -> Grayimg:
     """
         operator: sobel, prewitt, 
@@ -1274,6 +1295,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
         cha = cv.subtract(edge1, edge_background[y:y + h, x:x + w])
         hsv_roi = cv.cvtColor(cha, cv.COLOR_GRAY2BGR)
         hsv_roi = cv.cvtColor(hsv_roi, cv.COLOR_BGR2HSV)
+        # hsv_roi = to_hsv(cha)
 
     if background_img is None:
         # 为了避免由于低光导致的错误值，使用 cv2.inRange() 函数丢弃低光值。
@@ -1282,15 +1304,26 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
         mask = cv2.inRange(cha, 100, 255)
     
     if OutWindow and OutWindow.display:
-        if my_show(mask):
+        if my_show(hsv_roi):
             return 'stop'
 
     roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0, 180])
     cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
         
+    '''import matplotlib.pyplot as plt
+    plt.figure()
+    plt.title("Grayscale Histogram")
+    plt.xlabel("Bins")
+    plt.ylabel("% of Pixels")
+    plt.plot(roi_hist)
+    plt.xlim([0, 256])
+    plt.show()'''
+
+    '''没看出这个crit设置有什么区别'''
     # 设置终止标准，{n}次迭代或移动至少 1pt
-    term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 1, 1)
-    
+    term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)
+    # term_crit = (cv2.TERM_CRITERIA_EPS, 1, 1)
+
     # PROCESS INIT
     stdoutpb = Stdout_progressbar(frame_num, not(OutWindow and OutWindow.display))
     progressBar['maximum'] = frame_num
@@ -1317,6 +1350,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
                 cha = cv2.subtract(edge(frame), edge_background)
                 hsv = cv2.cvtColor(cha, cv2.COLOR_GRAY2BGR)
                 hsv = cv2.cvtColor(hsv, cv2.COLOR_BGR2HSV)
+                # hsv = to_hsv(cha)
 
             dst = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
 
@@ -1352,7 +1386,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
         
     # PROCESS TAIL
     if OutWindow and OutWindow.display:
-        OutWindow.textboxprocess.insert('检测完成，展示模式不修改数据\n')
+        OutWindow.textboxprocess.insert('0.0','检测完成，展示模式不修改数据\n')
     else:
         file_center.close()
         file_theta.close()
@@ -1455,7 +1489,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
         stdoutpb.update(cnt)
         
     if OutWindow and OutWindow.display:
-        OutWindow.textboxprocess.insert('检测完成，展示模式不修改数据\n')
+        OutWindow.textboxprocess.insert('0.0','检测完成，展示模式不修改数据\n')
     else:
         file_center.close()
         file_theta.close()
@@ -1476,8 +1510,8 @@ class FakeMs:
         self.cnt += 1
 
 if pstatus == "debug":
-    # cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.MOV")
-    cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
+    cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.mp4")
+    # cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -1508,9 +1542,9 @@ if pstatus == "debug":
         window.display = 1
         # window.textboxprocess.insert("0.0", "111\n")
         # main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
-        # feature(cap,'front',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
-        # feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
+        # feature(cap,'back',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
+        feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
         # contour(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10, turn_start=1)
-        contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
+        # contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
 
         # tier.mainloop()
