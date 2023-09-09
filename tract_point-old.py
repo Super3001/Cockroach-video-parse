@@ -395,7 +395,7 @@ class Identifier:
         global minis
         _rtn = -1
         while _rtn < 0:
-            _rtn = monitor_show(frame, function = self.mouse, container=self)
+            _rtn = self.monitor_show(frame, function = self.mouse, container=self)
             if _rtn == 1:
                 cv2.destroyAllWindows()
                 return 'q'

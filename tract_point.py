@@ -40,7 +40,7 @@ class Tractor:
         if key == -1:
             '''代表已经处理过了'''
             print(self.status)
-            return -1 # 代表unkonown
+            return -1 # 代表unknown(?)
         if key == ord('q'):
             '''取消：退出选择'''
             self.status = 'cancel'
@@ -168,7 +168,7 @@ class Tractor:
         # cv2.imshow("windowName",frame)
         # cv2.setMouseCallback("windowName", self.pointColor, frame)
         # cv2.waitKey(0)
-        if self.monitor_show(frame, function=self.pointColor, reset_function=self.color_reset):
+        if self.monitor_show(frame, function=self.pointColor, reset_function=self.color_reset) == 1:
             cv2.destroyAllWindows()
             return (-1,-1,-1)
         print(self.gbColor)

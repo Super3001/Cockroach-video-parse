@@ -1510,8 +1510,8 @@ class FakeMs:
         self.cnt += 1
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.mp4")
-    # cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
+    # cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.mp4")
+    cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
@@ -1541,9 +1541,9 @@ if pstatus == "debug":
         window = OutputWindow(tier)
         window.display = 1
         # window.textboxprocess.insert("0.0", "111\n")
-        # main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
+        main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
         # feature(cap,'back',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
-        feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
+        # feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
         # contour(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10, turn_start=1)
         # contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
 

@@ -199,3 +199,4 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 9.9
 - [] tractor双击放大
+- [] 角度趋势相对应
