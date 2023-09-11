@@ -177,8 +177,9 @@ class DataParser:
         self.X1 = np.array(self.X1); self.Y1 = np.array(self.Y1); self.X2 = np.array(self.X2); self.Y2 = np.array(self.Y2)
         self.X_mid = np.array(self.X_mid); self.Y_mid = np.array(self.Y_mid)
         self.K = np.array(self.K); self.D = np.array(self.D); self.Theta = np.array(self.Theta)
+        self.smooth_thetas(90)
         self.durings = self.sti_segment()
-
+        
     def parse_feature_result(self, file_f,file_b, fps):
         self.filekind = ['f','b']
         self.parse_time = utils.timestr()
@@ -311,6 +312,7 @@ class DataParser:
         self.frame_interval = self.frames[1:] - self.frames[:-1]
 
         # 分割刺激
+        self.smooth_thetas(90) # 90度以上认为是跳变
         self.durings = self.sti_segment()
         
         ''' end '''

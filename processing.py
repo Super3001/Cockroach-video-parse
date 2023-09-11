@@ -1541,8 +1541,8 @@ if pstatus == "debug":
         window = OutputWindow(tier)
         window.display = 1
         # window.textboxprocess.insert("0.0", "111\n")
-        main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
-        # feature(cap,'back',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
+        # main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
+        feature(cap,'back',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
         # feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
         # contour(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10, turn_start=1)
         # contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)

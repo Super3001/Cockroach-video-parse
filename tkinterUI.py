@@ -24,7 +24,7 @@ if pstatus == "debug":
     pass
 
 # 提示信息
-Prompt = "\n1.图像展示过程按q退出\n2.按空格键暂停\n"
+Prompt = "\n1.图像展示过程按q退出\n2.按空格键暂停\n\n现在时间：{}\n欢迎使用二维目标追踪程序"
 msg_NoVideo = '请先导入视频'
 
 # 缩放比例 x: cm/px
@@ -60,11 +60,32 @@ class APP:
         #     self.master.grid_rowconfigure(i, weight=1, minsize=window_height // 4)
         #     self.master.grid_columnconfigure(i, weight=1, minsize=window_width // 4)
     
+    def on_step_change(self, *args):
+        if self.step.get() == 'init':
+            for each in [self.bt6,self.bt7,self.bt9, self.bt10, self.bt11, self.bt12,self.e1,self.ebt1,self.bt2,self.bt3,self.bt4,self.bt5]:
+                each.config(state="disabled")
+        elif self.step.get() == 'video loaded':
+            for each in [self.bt6,self.bt10, self.bt12,self.e1,self.ebt1,self.bt2,self.bt3,self.bt4,self.bt5]:
+                each.config(state="normal")
+        elif self.step.get() == 'light and process':
+            pass
+        elif self.step.get() == 'process without light':
+            pass
+        elif self.step.get() == 'all able':
+            pass
+        else:
+            raise ValueError('wrong value')
+    
     # pack写法
     def __init__(self,master, pstatus) -> None:
         self.project_status = pstatus
         self.master = master
         self.master.title('蟑螂视频处理程序')
+        
+        # 定义一个被绑定的变量（发出信号）
+        self.step = StringVar(master)
+        self.step.trace("w", self.on_step_change)
+        
         # left, middle, right frame
         leftframe = Frame(master,width=40,height=40)
         leftframe.pack(side=LEFT,padx=10,pady=10)
@@ -83,9 +104,9 @@ class APP:
         self.bt7 = Button(leftframe,width=25,height=3,text='查看结果',
                           font=("等线",20),bg='green',fg='white',command=self.view_result)
         self.bt7.pack(side=TOP)
-        self.bt7 = Button(leftframe,width=25,height=3,text='退出',
+        self.bt8 = Button(leftframe,width=25,height=3,text='退出',
                           font=("等线",20),bg='orange',fg='black',command=self.quit)
-        self.bt7.pack(side=TOP)
+        self.bt8.pack(side=TOP)
         # if self.project_status == 'debug':
         #     self.bt_app = Button(leftframe,width=25,height=3,text='重启',
         #                     font=("等线",20),bg='orange',fg='black',command=self.restart)
@@ -110,8 +131,8 @@ class APP:
         # display control
         self.bt10 = Button(middleframe, text='展示第一帧',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.show_first_frame)
         self.bt10.pack(side=TOP,pady=0)
-        self.bt8 = Button(middleframe, text='转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_magnify)
-        self.bt8.pack(side=TOP,pady=0)
+        self.bt11 = Button(middleframe, text='转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_magnify)
+        self.bt11.pack(side=TOP,pady=0)
         self.bt9 = Button(middleframe, text='取消转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.stop_magnify)
         
         # process control
@@ -132,8 +153,8 @@ class APP:
         self.progressbar['maximum'] = 100
         self.progressbar['value'] = 0
         
-        self.bt11 = Button(middleframe, text='frame skip',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.set_skip)
-        self.bt11.pack(side=TOP,pady=0)
+        self.bt12 = Button(middleframe, text='眺帧读取',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.set_skip)
+        self.bt12.pack(side=TOP,pady=0)
         
         # right frame: method choice
         self.bt2 = Button(rightframe,width=15,height=1,text='meanshift',
@@ -152,12 +173,12 @@ class APP:
         # bottom frame: process display
         bottomframe = Frame(rightframe,relief=SUNKEN)
         bottomframe.pack(side=BOTTOM,padx=10,pady=10)
-        self.bt8 = Button(bottomframe,width=15,text='提取过程展示',
+        self.btr0 = Button(bottomframe,width=15,text='提取过程展示',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_display)
-        self.bt8.pack(side=TOP,pady=(10,0))
-        self.bt9 = Button(bottomframe,width=15,text='关闭提取过程展示',
+        self.btr0.pack(side=TOP,pady=(10,0))
+        self.btr1 = Button(bottomframe,width=15,text='关闭提取过程展示',
                           font=("等线",15,"bold"),bg='red',fg='white',activebackground='green',command=self.stop_display)
-        self.bt9.pack(side=TOP,pady=(0,10))
+        self.btr1.pack(side=TOP,pady=(0,10))
 
         # grid写法
         '''def __init__(self, master, pstatus) -> None:
@@ -296,6 +317,8 @@ class APP:
         self.rm = 1
         self.master.geometry(str_geometryProperty)
         self.tier2 = None
+        
+        self.step.set('init')
 
         
     def quit(self):
@@ -328,11 +351,12 @@ class APP:
         self.video_height = int(self.cap.get(4))
         self.fps = int(round(self.cap.get(5)))
         self.nframe = int(self.cap.get(7))
-        self.lbconfig['text'] = f'num_frames : {self.nframe}, fps : {self.fps}'
-        self.lbconfig_2['text'] = f'width : {self.video_width}px, height : {self.video_height}px'
+        self.lbconfig['text'] = f'帧数: {self.nframe}, 帧速率: {self.fps}帧/秒'
+        self.lbconfig_2['text'] = f'宽度: {self.video_width}px, 高度: {self.video_height}px'
         # filename: absolute path
         self.light = 0
         self.status = None
+        self.step.set('video loaded')
         self.master.update()
         
     def go_magnify(self):
@@ -399,14 +423,16 @@ class APP:
                 self.output_window.textboxprocess.insert('0.0','ratio: '+str(self.output_window.ratio)+'\n')
             # tkinter.messagebox.showinfo(message='已打开提取过程展示')
             self.output_window.startTime = utils.timestr()
-            print(self.output_window.startTime)
+            # print(self.output_window.startTime)
             self.tier2.mainloop()
         
     def stop_display(self):
-        if self.output_window != None and self.output_window.display != 0 and self.output_window.master.winfo_exists(): 
+        if self.output_window is not None and self.output_window.display != 0:
             self.output_window.close()
             self.output_window.display = 0
-            self.master.geometry(str_geometryProperty)
+            # self.master.geometry(str_geometryProperty)
+        else:
+            print('窗口已经关闭')
         # tkinter.messagebox.showinfo(message='已关闭提取过程展示')
         
     def go_color(self):
@@ -648,12 +674,20 @@ class OutputWindow:
         title.pack(side="top")
         self.textboxprocess = text
         # self.textboxprocess.insert("insert","will be shown here\n")
-        self.textboxprocess.insert("insert","\n提示信息\n" + Prompt)
+        self.textboxprocess.insert("insert","\n提示信息\n" + Prompt.format(utils.timestr()))
         self.startTime = ''
         self.display = 0
         self.ratio = 0
         
+        # 关闭窗口协议
+        master.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def on_close(self):
+        self.display = 0
+        self.master.destroy()
+        
     def close(self):
+        self.display = 0
         self.master.destroy()
 
     def lift(self):

@@ -5,6 +5,7 @@ import tkinter as tk
 import numpy as np
 from utils import dcut
 from tkinter.messagebox import askyesno
+from signals import *
 
 """debug global property"""
 from control import pstatus
@@ -59,6 +60,24 @@ class Tractor:
     def set(self, ord, value):
         if ord == 'mutiple':
             self.mutiple = value
+            
+    def txt(self, image, text):
+        # 设置文字参数
+        # text = "Hello, OpenCV!"
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 1.0
+        color = (255, 0, 0)  # 文字颜色，BGR格式
+        thickness = 2  # 文字线条粗细
+
+        # 在图像上添加文字
+        image_height, image_width = image.shape[:2]
+        text_width, text_height = cv2.getTextSize(text, font, font_scale, thickness)[0]
+
+        # 计算文本在图像底部10%位置居中时的坐标
+        text_x = int((image_width - text_width) / 2)
+        text_y = int(image_height * 0.9) + int((image_height * 0.1 - text_height) / 2)
+
+        cv2.putText(image, text, (text_x, text_y), font, font_scale, color, thickness)
             
     def drawCircle(self,event,x,y,flags,frame):
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -341,6 +360,7 @@ class Identifier(Tractor):
             else:
                 cv2.destroyWindow("roi") '''
         
+        self.txt(frame, select_window_prompt)
         _rtn = self.monitor_show(frame, function = self.mouse, reset_function = self.idf_reset)
         # if _rtn == 1:
         if self.status == 'cancel':
@@ -355,16 +375,36 @@ class Identifier(Tractor):
             # return g_rect, minis
             return self.gbRect, []
         else:
-            print("==="*15)
+            print("===" * 15)
             print('unknown status... reset to none')
             self.status == 'none'
             return (-2,)*4, []
         
     def idf_reset(self):
+        
         print('reset')
-        cv2.destroyWindow("roi")
+        window_name = "roi"
+
+        # 检查窗口是否存在
+        window_status = cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE)
+
+        if window_status > 0:
+            # 关闭窗口
+            cv2.destroyWindow(window_name)
+        else:
+            print('useless key input')
+
            
     def mouse(self,event,x,y,flags,frame):
+        """select_window callback function
+
+        Args:
+            event (_type_): _description_
+            x (_type_): _description_
+            y (_type_): _description_
+            flags (_type_): _description_
+            frame (_type_): _description_
+        """        
         frame_show = frame.copy()
         if event == cv2.EVENT_LBUTTONDOWN:  # 左键点击,则在原图打点
             # print("1-EVENT_LBUTTONDOWN")
