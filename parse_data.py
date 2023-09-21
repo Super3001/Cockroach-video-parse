@@ -1,4 +1,5 @@
 # parse_data.py
+# %%
 import utils
 from math import sqrt, atan, ceil, pi
 import numpy as np
@@ -15,6 +16,30 @@ TBD = -10
 
 def f2sec(n,fps): # 将帧数转化为秒
     return n / fps
+
+from scipy.signal import butter, filtfilt
+
+def butter_bandpass(lowcut, highcut, fs, order=4):
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=4):
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = filtfilt(b, a, data)
+    return y
+
+"""
+# 示例用法
+fs = 100 # 采样频率
+lowcut = 0.01 # 低频截止频率
+highcut = 3 # 高频截止频率
+order = 4 # 滤波器阶数
+# 应用滤波器
+filtered_data = butter_bandpass_filter(y, lowcut, highcut, fs, order=order)
+"""
 
 class DataParser:
     def __init__(self, before=0.5, after=4.5, fps=60, skip_n=1) -> None:
@@ -390,10 +415,37 @@ class DataParser:
 
         ''' end '''
 
+# %%
 if pstatus == "debug":
     if __name__ == '__main__':
         parser = DataParser()
         parser.parse_light(open('out-light-every.txt','r'), 30)
         parser.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
+        
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(15, 14))
+        plt.subplot(2, 1, 1)
+        plt.plot(parser.frames, parser.Theta)
+        plt.xlabel('Time [s]')
+        plt.ylabel('Amplitude')
+        plt.title('Original Data')
+
+        # 示例用法
+        fs = 60 # 采样频率
+        lowcut = 0.01 # 低频截止频率
+        highcut = 3 # 高频截止频率
+        order = 4 # 滤波器阶数
+        # 应用滤波器
+        y = np.zeros(parser.nframe)
+        y[parser.frames-1] = parser.Theta
+        filtered_data = butter_bandpass_filter(y, lowcut, highcut, fs, order=order)
+        
+        plt.subplot(2, 1, 2)
+        plt.plot(np.arange(1,parser.nframe+1), filtered_data)
+        plt.xlabel('Time [s]')
+        plt.ylabel('Amplitude')
+        plt.title('filtered')
+        
+        plt.show()
         print('finish')
 

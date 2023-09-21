@@ -38,6 +38,8 @@ str_geometryProperty = f'{WIDTH}x{HEIGHT}+50+50'
 # 设置全局异常处理程序
 # utils.set_exit()
 
+
+
 class APP:
     '''回调函数，用于处理窗口大小变化事件'''
     def resize_window(self,event):
@@ -62,15 +64,21 @@ class APP:
     
     def on_step_change(self, *args):
         if self.step.get() == 'init':
-            for each in [self.bt6,self.bt7,self.bt9, self.bt10, self.bt11, self.bt12,self.e1,self.ebt1,self.bt2,self.bt3,self.bt4,self.bt5]:
+            for each in [self.bt6,self.bt7,self.bt9, self.bt10, self.bt11, self.bt12,self.e1,self.ebt1,self.bt2,self.bt3,self.bt4,self.bt5,self.bt06]:
                 each.config(state="disabled")
         elif self.step.get() == 'video loaded':
-            for each in [self.bt6,self.bt10, self.bt12,self.e1,self.ebt1,self.bt2,self.bt3,self.bt4,self.bt5]:
+            for each in [self.bt6,self.bt10, self.bt12,self.e1,self.ebt1,self.bt2,self.bt3,self.bt4,self.bt5,self.bt06]:
                 each.config(state="normal")
+            for each in [self.bt7,self.bt11,self.bt9]:
+                each.config(state="disabled")
         elif self.step.get() == 'light and process':
-            pass
+            self.result_txt.set('查看结果')
+            for each in [self.bt7,self.bt11,self.bt9]:
+                each.config(state="normal")
         elif self.step.get() == 'process without light':
-            pass
+            self.result_txt.set('查看结果(不带刺激)')
+            for each in [self.bt7,self.bt11,self.bt9]:
+                each.config(state="normal")
         elif self.step.get() == 'all able':
             pass
         else:
@@ -80,7 +88,7 @@ class APP:
     def __init__(self,master, pstatus) -> None:
         self.project_status = pstatus
         self.master = master
-        self.master.title('蟑螂视频处理程序')
+        self.master.title('二维目标追踪视频处理程序')
         
         # 定义一个被绑定的变量（发出信号）
         self.step = StringVar(master)
@@ -101,9 +109,11 @@ class APP:
         self.bt6 = Button(leftframe,width=25,height=3,text='提取闪光',
                           font=("等线",20),bg='black',fg='white',command=self.tract_light)
         self.bt6.pack(side=TOP)
-        self.bt7 = Button(leftframe,width=25,height=3,text='查看结果',
+        self.result_txt = StringVar(master)
+        self.bt7 = Button(leftframe,width=25,height=3,textvariable=self.result_txt,
                           font=("等线",20),bg='green',fg='white',command=self.view_result)
         self.bt7.pack(side=TOP)
+        self.result_txt.set('查看结果')
         self.bt8 = Button(leftframe,width=25,height=3,text='退出',
                           font=("等线",20),bg='orange',fg='black',command=self.quit)
         self.bt8.pack(side=TOP)
@@ -113,7 +123,7 @@ class APP:
         #     self.bt_app.pack(side=TOP)
         
         # middle frame: display and process control
-        self.lb1 = Label(middleframe, text='实验数据处理\n爬行昆虫追踪系统',  #文字支持换行
+        self.lb1 = Label(middleframe, text='实验数据处理\n二维目标追踪系统',  #文字支持换行
                   font=("华文行楷",30),
                   padx=10,
                   pady=10
@@ -131,6 +141,8 @@ class APP:
         # display control
         self.bt10 = Button(middleframe, text='展示第一帧',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.show_first_frame)
         self.bt10.pack(side=TOP,pady=0)
+        self.bt12 = Button(middleframe, text='跳帧读取',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.set_skip)
+        self.bt12.pack(side=TOP,pady=0)
         self.bt11 = Button(middleframe, text='转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_magnify)
         self.bt11.pack(side=TOP,pady=0)
         self.bt9 = Button(middleframe, text='取消转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.stop_magnify)
@@ -139,36 +151,44 @@ class APP:
         # middle down frame: magnify process
         self.bt9.pack(side=TOP,pady=0)
         middledownframe = Frame(middleframe)
-        middledownframe.pack(side=TOP,padx=10,pady=10)
+        # middledownframe.pack(side=TOP,padx=10,pady=10)
         self.lb2 = Label(middledownframe,text='处理的缩放倍数：',font=("等线",15))
-        self.lb2.grid(row=1,column=1)
+        # self.lb2.grid(row=1,column=1)
         self.e1 = Entry(middledownframe, font=("等线",15),relief=FLAT,width=12)
-        self.e1.insert(0, "1(请输入正数)")
-        self.e1.grid(row=1,column=2)
+        # self.e1.insert(0, "1(请输入正数)")
+        # self.e1.grid(row=1,column=2)
         self.ebt1 = Button(middledownframe, text='确定', font=("等线",15,"underline"),relief=FLAT,command=self.set_process_multiple)
-        self.ebt1.grid(row=1,column=3)
+        # self.ebt1.grid(row=1,column=3)
         
         self.progressbar = ttk.Progressbar(middleframe,length=400)
         self.progressbar.pack(side=TOP,pady=20)
         self.progressbar['maximum'] = 100
         self.progressbar['value'] = 0
         
-        self.bt12 = Button(middleframe, text='眺帧读取',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.set_skip)
-        self.bt12.pack(side=TOP,pady=0)
+        # style = ttk.Style()
+        # style.theme_use('default')
+        # style.configure('active.Horizontal.TProgressbar', background='green')
+        # style.configure('unactive.Horizontal.TProgressbar', background='red')
+        
+        # self.hide_progressbar()
+        self.show_progressbar()
         
         # right frame: method choice
-        self.bt2 = Button(rightframe,width=15,height=1,text='meanshift',
+        self.bt2 = Button(rightframe,width=18,height=1,text='一般识别（前后点）',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_meanshift)
         self.bt2.pack(side=TOP,pady=10)
-        self.bt3 = Button(rightframe,width=15,height=1,text='颜色识别',
-                          font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_color)
-        self.bt3.pack(side=TOP,pady=10)
-        self.bt4 = Button(rightframe,width=15,height=1,text='camshift',
+        self.bt3 = Button(rightframe,width=18,height=1,text='一般识别（整体）',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_camshift)
+        self.bt3.pack(side=TOP,pady=10)
+        self.bt4 = Button(rightframe,width=18,height=1,text='颜色识别',
+                          font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_color)
         self.bt4.pack(side=TOP,pady=10)
-        self.bt5 = Button(rightframe,width=15,height=1,text='标志点特征识别',
+        self.bt5 = Button(rightframe,width=18,height=1,text='标志点特征识别',
                           font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_feature)
         self.bt5.pack(side=TOP,pady=10)
+        self.bt06 = Button(rightframe,width=18,height=1,text='边缘检测识别',
+                          font=("等线",15,"bold"),bg='blue',fg='white',activebackground='green',command=self.go_contour)
+        self.bt06.pack(side=TOP,pady=10)
         
         # bottom frame: process display
         bottomframe = Frame(rightframe,relief=SUNKEN)
@@ -290,7 +310,7 @@ class APP:
         # properties
         self.cap = None
         if(self.project_status == 'debug'):
-            self.status = 'feature'
+            self.status = 'contour'
             self.light = 1
             self.fps = 30
             self.filename = 'example.mp4'
@@ -300,6 +320,7 @@ class APP:
             self.timestr = utils.timestr()
             self.detect_mark_str = f'{self.status}-{self.timestr}'
             self.skip_num = 1
+            self.step.set('light and process')
         else:
             self.status = None
             self.light = 0
@@ -310,6 +331,7 @@ class APP:
             self.timestr = None
             self.detect_mark_str = None
             self.skip_num = 1
+            self.step.set('init')
             
         self.output_window = None
         self.first_middle_point = (-1,-1)
@@ -318,7 +340,7 @@ class APP:
         self.master.geometry(str_geometryProperty)
         self.tier2 = None
         
-        self.step.set('init')
+        
 
         
     def quit(self):
@@ -330,6 +352,20 @@ class APP:
         # print(os.getcwd()) # OK
         os.system('python tkinterUI.py')
         sys.exit(0)
+        
+    # def pactivate(self):
+    #     self.progressbar.configure(style='active.Horizontal.TProgressbar')
+    #     # self.progressbar.start()
+
+    # def punactivate(self):
+    #     self.progressbar.configure(style='unactive.Horizontal.TProgressbar')
+    #     # self.progressbar.stop()
+        
+    def show_progressbar(self):
+        self.progressbar.pack()
+
+    def hide_progressbar(self):
+        self.progressbar.pack_forget()
         
     def refresh(self):
         self.progressbar['value'] = 0
@@ -387,7 +423,8 @@ class APP:
         self.cap.set(1, 0) # 重置为第一帧
         ret, frame0 = self.cap.read()
         print('ratio:',self.magRatio)
-        cv.imwrite(f'src/{self.filename}.png', frame0)
+        # cv.imwrite(f'src/{self.filename}.png', frame0)
+        cv.imwrite(f'src/filename.png', frame0)
         my_show(frame0,self.magRatio)
         
     def set_process_multiple(self):
@@ -445,8 +482,15 @@ class APP:
         main_color(self.cap,'back',self.master,
                    self.output_window,self.progressbar,self.pm,self.skip_num)
         
-        self.refresh()
+        # self.refresh()
+        if self.output_window and self.output_window.display:
+            return
+        
         self.status = 'color'
+        if self.light:
+            self.step.set('light and process')
+        else:
+            self.step.set('process without light')
         self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
@@ -470,8 +514,15 @@ class APP:
                 self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
             else:
                 self.output_window.textboxprocess.insert('0.0','后点提取过程结束（展示过程不保存数据）\n')
-        self.refresh()
+        # self.refresh()
+        if self.output_window and self.output_window.display:
+            return
+        
         self.status = 'meanshift'
+        if self.light:
+            self.step.set('light and process')
+        else:
+            self.step.set('process without light')
         self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
@@ -482,8 +533,15 @@ class APP:
         tkinter.messagebox.showinfo(message='请导入背景图')
         filename = filedialog.askopenfilename(defaultextension='.jpg')
         self.backgroundImg = cv.imread(filename)
-        contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar,self.skip_num)
+        contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar,self.skip_num,use_contour=True)
+        if self.output_window and self.output_window.display:
+            return
+        
         self.status = 'contour'
+        if self.light:
+            self.step.set('light and process')
+        else:
+            self.step.set('process without light')
         self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
@@ -493,7 +551,14 @@ class APP:
             return
         '''camshift被包装在contour_camshift中'''
         contour(self.cap,None,self.master,self.output_window,self.progressbar,self.skip_num)
+        if self.output_window and self.output_window.display:
+            return
+        
         self.status = 'camshift'
+        if self.light:
+            self.step.set('light and process')
+        else:
+            self.step.set('process without light')
         self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
 
@@ -506,7 +571,14 @@ class APP:
         tkinter.messagebox.showinfo(message='追踪后点')
         feature(self.cap,kind='back',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master,skip_n=self.skip_num)
         
+        if self.output_window and self.output_window.display:
+            return
+        
         self.status = 'feature'
+        if self.light:
+            self.step.set('light and process')
+        else:
+            self.step.set('process without light')
         self.timestr = utils.timestr()
         self.detect_mark_str = f'{self.status}-{self.timestr}'
         
@@ -526,6 +598,8 @@ class APP:
                 pass
             cv.destroyAllWindows()
         self.light = 1
+        if self.status is not None:
+            self.step.set('light and process')
         self.refresh()
         
     def view_result(self):  
@@ -557,6 +631,11 @@ class APP:
         elif self.status == 'camshift':
             file_center = open('out-camshift-center.txt','r')
             file_angle = open('out-camshift-theta.txt','r')
+            data_dealer.parse_center_angle(file_center,file_angle,self.fps)
+            
+        elif self.status == 'contour':
+            file_center = open('out-contour-center.txt','r')
+            file_angle = open('out-contour-theta.txt','r')
             data_dealer.parse_center_angle(file_center,file_angle,self.fps)
             
         else:

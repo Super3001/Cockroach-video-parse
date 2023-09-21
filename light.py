@@ -58,7 +58,7 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=1000//3
                     OutWindow.textboxprocess.insert("0.0","%d\n" % cnt)
                     frame_show = frame.copy()
                     cv.rectangle(frame_show, (domain[2]-20,domain[0]-20),(domain[3]+20,domain[1]+20),(0,0,255),2)
-                    if my_show(frame_show, time=show_time):
+                    if my_show(frame_show, _time=show_time):
                         return 'stop'
                     """使用帧数进行记录"""
                 else:
@@ -67,7 +67,7 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=1000//3
                 if OutWindow and OutWindow.display:
                     frame_show = frame.copy()
                     cv.rectangle(frame_show, (domain[2]-20,domain[0]-20),(domain[3]+20,domain[1]+20),(255,0,0),2)
-                    if my_show(frame_show, time=show_time):
+                    if my_show(frame_show, _time=show_time):
                         return 'stop'
                 else:
                     pass

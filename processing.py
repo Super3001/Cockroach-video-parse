@@ -131,13 +131,13 @@ def cleanout(points, domain):
         
     return cleaned_points
 
-def print_mid_point(rect: list|tuple):
+def print_mid_point(rect: list|tuple, sep=','):
     if len(rect) == 4:
         x = (rect[2]+rect[3])/2
         y = (rect[0]+rect[1])/2
-        return str(round(x,2))+','+str(round(y,2))
+        return str(round(x,2))+sep+str(round(y,2))
     elif len(rect) == 2:
-        return str(round(rect[0],2))+','+str(round(rect[1],2))
+        return str(round(rect[0],2))+sep+str(round(rect[1],2))
     else:
         raise Exception('rect的长度错误，应为2或4')
 
@@ -521,7 +521,10 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
                 dst = cv.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
 
                 # 4.4 进行meanshift追踪
-                ret, track_window = cv.meanShift(dst, track_window, term_crit)
+                # ret, track_window = cv.meanShift(dst, track_window, term_crit)
+                ret, track_window = cv2.CamShift(dst, track_window, term_crit)
+
+                center, size, angle = ret # 解包
 
                 # 4.5 将追踪的位置绘制在视频上，并进行显示
                 if OutWindow and OutWindow.display:
@@ -566,7 +569,10 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
                 dst = cv.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
 
                 # 4.4 进行meanshift追踪
-                ret, track_window = cv.meanShift(dst, track_window, term_crit)
+                # ret, track_window = cv.meanShift(dst, track_window, term_crit)
+                ret, track_window = cv2.CamShift(dst, track_window, term_crit)
+
+                center, size, angle = ret # 解包
 
                 # 4.5 将追踪的位置绘制在视频上，并进行显示
                 if OutWindow and OutWindow.display:
@@ -1176,9 +1182,9 @@ def to_hsv(img: Grayimg):
     
     return hsv_image
 
-def edge(img: BGRimg, _operator='sobel') -> Grayimg:
+def edge(img: BGRimg, _operator='prewitt') -> Grayimg:
     """
-        operator: sobel, prewitt, 
+        operator: sobel, prewitt, ... 
     """
     img = cv.cvtColor(img,cv.COLOR_BGR2GRAY)
 
@@ -1210,10 +1216,10 @@ def edge(img: BGRimg, _operator='sobel') -> Grayimg:
         roberts_edges = cv.addWeighted(roberts_x, 0.5, roberts_y, 0.5, 0)
 
         # 显示原始图像和边缘检测结果
-        cv2.imshow('Original Img', img)
-        cv2.imshow('Roberts Edges', roberts_edges)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.imshow('Original Img', img)
+        # cv2.imshow('Roberts Edges', roberts_edges)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         return roberts_edges
     
@@ -1226,10 +1232,10 @@ def edge(img: BGRimg, _operator='sobel') -> Grayimg:
         prewitt_edges = cv2.addWeighted(prewitt_x, 0.5, prewitt_y, 0.5, 0)
 
         # 显示原始图像和边缘检测结果
-        cv2.imshow('Original img', img)
-        cv2.imshow('Prewitt Edges', prewitt_edges)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.imshow('Original img', img)
+        # cv2.imshow('Prewitt Edges', prewitt_edges)
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         return prewitt_edges
 
@@ -1238,7 +1244,7 @@ def edge(img: BGRimg, _operator='sobel') -> Grayimg:
         v2=cv2.Canny(img,50,100)
         
         res = np.hstack((v1,v2))
-        cv_show(res,'res')
+        # cv_show(res,'res')
 
         return res
 
@@ -1252,12 +1258,12 @@ def edge(img: BGRimg, _operator='sobel') -> Grayimg:
         kernel = cv2.getStructuringElement(cv2.MORPH_RECT,(5,5))         #定义矩形结构元素
         gradient = cv2.morphologyEx(Thr_img, cv2.MORPH_GRADIENT, kernel) #梯度
 
-        cv2.imshow("original_img", img) 
-        cv2.imshow("gradient", gradient) 
-        cv2.imshow('Canny', canny)
+        # cv2.imshow("original_img", img) 
+        # cv2.imshow("gradient", gradient) 
+        # cv2.imshow('Canny', canny)
 
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        # cv2.waitKey(0)
+        # cv2.destroyAllWindows()
 
         return gradient
         
@@ -1303,9 +1309,9 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
     else:
         mask = cv2.inRange(cha, 100, 255)
     
-    if OutWindow and OutWindow.display:
-        if my_show(hsv_roi):
-            return 'stop'
+    # if OutWindow and OutWindow.display:
+        # if my_show(hsv_roi):
+            # return 'stop'
 
     roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0, 180])
     cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
@@ -1374,6 +1380,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
                 cv2.imshow('img2', img2)
                 k = cv2.waitKey(60) & 0xff
                 if k == ord('q'): 
+                    cv.destroyAllWindows()
                     return 'stop'
             else:
                 file_center.write(f'{cnt} {str(center)[1:-1]}\n') # 去掉左右括号
@@ -1415,14 +1422,9 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
     domain = (r,r+h,c,c+w) # 上下左右
     
     roi = frame0[y:y + h, x:x + w]
-    if background_img is None:
-        hsv_roi = cv.cvtColor(roi, cv.COLOR_BGR2HSV)
-        cha = None
-    else:
-        edge1 = edge(roi)
-        edge_background = edge(dcut(background_img,domain))
-        cha = cv.subtract(edge1, edge_background)
-        hsv_roi = cv.cvtColor(cha, cv.COLOR_GRAY2HSV)
+    edge1 = edge(roi)
+    edge_background = edge(dcut(background_img,domain))
+    cha = cv.subtract(edge1, edge_background)
 
     # cha: 保留了兼容性
 
@@ -1476,7 +1478,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
             if OutWindow and OutWindow.display:
                 OutWindow.textboxprocess.insert('0.0', f'(0, 0)  0\n')
             else:
-                file_center.write(f'{cnt} 0,0\n')
+                file_center.write(f'{cnt} 0 0\n')
                 file_theta.write(f'{cnt} 0\n')
             continue
         domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
@@ -1484,7 +1486,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
         if OutWindow and OutWindow.display:
             OutWindow.textboxprocess.insert('0.0', f'({print_mid_point(domain)})  {round(angle,2)}\n')
         else:
-            file_center.write(f'{cnt} {print_mid_point(domain)}\n')
+            file_center.write(f'{cnt} {print_mid_point(domain,sep=" ")}\n')
             file_theta.write(f'{cnt} {round(angle,2)}\n')
         stdoutpb.update(cnt)
         
@@ -1496,8 +1498,10 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
         showinfo(message='检测完成!')
     return 'OK'
 
-def contour(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_start=1,turn_end=0):
+def contour(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_start=1,turn_end=0, use_contour=False):
     """检测边缘，之后再计算角度"""
+    if use_contour:
+        return contour_lr(cap, background_img, root,OutWindow,progressBar,skip_n,turn_start,turn_end)
 
     # 使用camshift方法
     return contour_camshift(cap, background_img,root,OutWindow,progressBar,skip_n, turn_start,turn_end)
@@ -1510,12 +1514,12 @@ class FakeMs:
         self.cnt += 1
 
 if pstatus == "debug":
-    # cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.mp4")
-    cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
+    cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\前后颜色标记点.mp4")
+    # cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    # background = cv2.imread(r"D:\GitHub\Cockroach-video-parse\src\DSC_2059.MOV.png")
+    background = cv2.imread(r"D:\GitHub\Cockroach-video-parse\src\filename.png")
     from tkinter import *
     Prompt = "this is a debug trial "
     class OutputWindow:
@@ -1542,9 +1546,9 @@ if pstatus == "debug":
         window.display = 1
         # window.textboxprocess.insert("0.0", "111\n")
         # main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
-        feature(cap,'back',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
+        # feature(cap,'back',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
         # feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
-        # contour(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10, turn_start=1)
+        contour_lr(cap,background,root=FakeMs(),OutWindow=None,progressBar=dict(),skip_n=1, turn_start=1)
         # contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
 
         # tier.mainloop()
