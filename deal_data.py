@@ -83,6 +83,13 @@ class Dealer(DataParser):
         self.str_scale = 'px'
         self.plot_tool = plot_tool
 
+    def save_data(self):
+        with open(f'results\Pos {self.filename},{self.timestr}.txt','w') as f:
+            f.write('frame# \tX_mid \tY_mid\n')
+            for i, frame in enumerate(self.frames):
+                f.write(f'{frame} \t{self.X_mid[i]} \t{self.Y_mid[i]}\n')
+            f.write('end\n')
+        
     def To_centimeter(self, ratio):
         self.out_ratio = ratio
         self.str_scale = 'cm'
@@ -808,7 +815,8 @@ if pstatus == "debug":
         # data_dealer.parse_center_angle(open('out-camshift-center.txt','r'),open('out-camshift-theta.txt','r'),60)
         data_dealer.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         # data_dealer.showPath()
-        data_dealer.showCurve()
+        data_dealer.save_data()
+        # data_dealer.showCurve()
         # data_dealer.showAngle()
         # data_dealer.showOmega()
         # data_dealer.showDist()

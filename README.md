@@ -198,5 +198,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 - [ ] tractor的取消提示
 
 9.9
-- [] tractor双击放大
-- [] 角度趋势相对应
+- [ ] tractor双击放大
+- [ ] 角度趋势相对应
+- [ ] 打包成exe无法显示matplotlib组件的问题
+

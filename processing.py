@@ -1461,7 +1461,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
         progressBar['value'] = cnt
         root.update()
 
-        cha = cv.subtract(edge(dcut(frame,domain)),edge(dcut(background,domain)))
+        cha = cv.subtract(edge(dcut(frame,domain)),edge(dcut(background_img,domain)))
         if OutWindow and OutWindow.display:
             OutWindow.textboxprocess.insert('0.0', f'{cnt}:\n')
         if turn_end > 0 and cnt > turn_end:

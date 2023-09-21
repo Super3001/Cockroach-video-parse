@@ -573,6 +573,7 @@ class APP:
                 os.mkdir(directory_name)
         
         self.show_result()
+        data_dealer.save_data() # save data every time parsing...
         
         tier1 = Tk()
         result_window = ResWindow(tier1,data_dealer)
