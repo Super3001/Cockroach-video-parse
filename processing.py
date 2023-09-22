@@ -302,7 +302,7 @@ def color_deal(frame,midval:tuple,dis:int,pre_state,thresh_dist,OutWindow=None):
 
         # 因为所有的点已经是有在domain之内这个限制了
         # 所以不需要再进行筛选。
-        # 因此border的设定就很关键了，因为这限制了蟑螂的移动速度不能大于border*fps px/s
+        # 因此border的设定就很关键了，因为这限制了目标物的移动速度不能大于border*fps px/s
         # 因此border的设定应该与跳帧系数skip_n有关，与fps有关
         valid_points = points
 
@@ -336,7 +336,7 @@ def color_deal(frame,midval:tuple,dis:int,pre_state,thresh_dist,OutWindow=None):
         #     return 'q',0
         pass
     
-    return 'ok', center_point[::-1] # center_point: (y, x)
+    return 'OK', center_point[::-1] # center_point: (y, x)
 
 """颜色识别的主函数"""
 def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提取
@@ -355,7 +355,7 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
     Trc.set("mutiple",pm)
     midval = np.zeros((3,))
     if kind == 'front':
-        showinfo('','请提取前点颜色，确定按回车')
+        showinfo('','请提取前点颜色')
         midval_f = Trc.tract_color(frame0)
         if midval_f[0] == -1:
             return 'stop'
@@ -370,7 +370,7 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
         # showinfo(message='前点颜色(BGR)'+str(midval_f)+' ...请等待')
         midval = midval_f
     else:
-        showinfo('','请提取后点颜色，确定按回车')
+        showinfo('','请提取后点颜色')
         midval_b = Trc.tract_color(frame0)
         if midval_b[0] == -1:
             return 'stop'
@@ -615,14 +615,14 @@ def Magnify(cap, root):
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     ret, frame0 = cap.read()
     Trc = Tractor()
-    showinfo(message='请点击蟑螂前端，然后回车')
-    Trc.tractPoint(frame0)
+    showinfo(message='请点击目标物前端')
+    Trc.tractPoint(frame0, "please click the very front of the object, enter to confirm, q to quit, space to redo")
     point_f = Trc.gbPoint
-    showinfo(message='请点击蟑螂后端，然后回车')
-    Trc.tractPoint(frame0)
+    showinfo(message='请点击目标物后端')
+    Trc.tractPoint(frame0, "please click the very back of the object, enter to confirm, q to quit, space to redo")
     point_b = Trc.gbPoint
     length = dist(point_f, point_b)
-    Trc.inputbox(root=root,show_text='请输入蟑螂的实际长度，单位：厘米')
+    Trc.inputbox(root=root,show_text='请输入目标物的实际长度，单位：厘米')
     body_length = eval(Trc.gbInput)
     # my_show(frame0, 50*body_length/length, midPoint(point_b,point_f))
     return body_length, length, midPoint(point_b,point_f)
@@ -877,7 +877,7 @@ def rect_points(points):
 """特征提取的主函数"""
 def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1, turn_start=1, turn_end=0) -> 0|1:
     """
-    return: 0|1 represents ok | quit
+    return: OK | stop
     """
     offset = 5
     cap.set(cv.CAP_PROP_POS_FRAMES, turn_start - 1)
@@ -889,13 +889,13 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     # size的格式:(x, y)
 
     Idf = Identifier()
-    showinfo(message='请拖动选择初始矩形框，之后回车')
+    showinfo(message='请拖动选择初始矩形框')
     rtn_ = Idf.select_window(frame0)
     
     (x,y,w,h), minis = rtn_ # minis未启用
     if x < 0:
         printb('用户取消', OutWindow)
-        return 1
+        return 'stop'
 
     # 如果是展示模式，输出到窗口，否则打开文件句柄
     if OutWindow and OutWindow.display:
@@ -959,7 +959,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
             if pos == (-1,-1): # abnormal status
                 print('end(manually)')
                 cv.destroyAllWindows()
-                return 1
+                return 'stop'
             if value > max_value:
                 max_value = value
                 max_angle_pos = pos
@@ -977,7 +977,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
             max_pos_center = (-1, -1)
             if OutWindow and OutWindow.display:
                 if my_show(frame, ratio=1, _time=100):
-                    return 1
+                    return 'stop'
                 printb('max_value: ' + str(max_value), OutWindow)
                 printb('black', OutWindow)
                 print('max_value:', max_value)
@@ -1011,7 +1011,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
 
             if my_show(frame_show, ratio=4, _time=100):
                 cv.destroyAllWindows()
-                return 1
+                return 'stop'
 
             printb('max_value: ' + str(max_value), OutWindow)
             printb('now_angle: ' + str(max_angle), OutWindow)
@@ -1037,7 +1037,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
         cv.destroyAllWindows()
     else:
         file.close()
-    return 0
+    return 'OK'
 
 """previous version: convolution方法识别主函数"""
 '''def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1): 
@@ -1050,7 +1050,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
     Idf = Identifier()
-    showinfo(message='请拖动选择初始矩形框，之后回车')
+    showinfo(message='请拖动选择初始矩形框')
     rtn_ = Idf.select_window(frame0)
     if rtn_ == 'q':
         printb('', OutWindow)
@@ -1283,7 +1283,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
         file_center = open('out-camshift-center.txt','w')
 
     # PROCESS PREWORK
-    showinfo(message='请拖动选择初始矩形框(整个)，之后回车')
+    showinfo(message='请拖动选择覆盖整个目标物的初始矩形框')
     r, h, c, w = Trc.select_rect(frame0)
     if r is None:
         return 'stop'
@@ -1410,7 +1410,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
     size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
     frame_num = cap.get(7)
-    showinfo(message='请拖动选择初始矩形框，之后回车')
+    showinfo(message='请拖动选择初始矩形框')
     file_theta = open('out-contour-theta.txt','w')
     file_center = open('out-contour-center.txt','w')
     r, h, c, w = Trc.select_rect(frame0)

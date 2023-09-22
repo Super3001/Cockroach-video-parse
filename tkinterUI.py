@@ -170,8 +170,8 @@ class APP:
         # style.configure('active.Horizontal.TProgressbar', background='green')
         # style.configure('unactive.Horizontal.TProgressbar', background='red')
         
-        # self.hide_progressbar()
-        self.show_progressbar()
+        self.hide_progressbar()
+        # self.show_progressbar()
         
         # right frame: method choice
         self.bt2 = Button(rightframe,width=18,height=1,text='一般识别（前后点）',
@@ -476,13 +476,16 @@ class APP:
         if self.cap==None :
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
-        main_color(self.cap,'front',self.master,
+        self.show_progressbar()
+        _rtn1 = main_color(self.cap,'front',self.master,
                    self.output_window,self.progressbar,self.pm,self.skip_num)
         
-        main_color(self.cap,'back',self.master,
+        _rtn2 = main_color(self.cap,'back',self.master,
                    self.output_window,self.progressbar,self.pm,self.skip_num)
         
-        # self.refresh()
+        self.hide_progressbar()
+        if _rtn1 != 'ok' or _rtn2 != 'ok':
+            return
         if self.output_window and self.output_window.display:
             return
         
@@ -498,23 +501,26 @@ class APP:
         if self.cap==None :
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
-        tkinter.messagebox.showinfo(message='追踪前点，请拖动选择矩形框，然后回车')
-        flag = meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm,self.skip_num)
+        self.show_progressbar()
+        tkinter.messagebox.showinfo(message='请拖动选择覆盖后点矩形框')
+        _rtn1 = meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm,self.skip_num)
         if self.output_window and self.output_window.display:
-            if flag == 'stop':
+            if _rtn1 == 'stop':
                 self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
                 cv.destroyAllWindows()
             else:
                 self.output_window.textboxprocess.insert('0.0','前点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
-        tkinter.messagebox.showinfo(message='追踪后点，请拖动选择矩形框，然后回车')
-        flag = meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm,self.skip_num)
+        tkinter.messagebox.showinfo(message='请拖动选择覆盖前点的矩形框')
+        _rtn2 = meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm,self.skip_num)
         if self.output_window and self.output_window.display:
-            if flag == 'stop':
+            if _rtn2 == 'stop':
                 self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
             else:
                 self.output_window.textboxprocess.insert('0.0','后点提取过程结束（展示过程不保存数据）\n')
-        # self.refresh()
+        self.hide_progressbar()
+        if _rtn1 != 'OK' or _rtn2 != 'OK':
+            return
         if self.output_window and self.output_window.display:
             return
         
@@ -530,10 +536,14 @@ class APP:
         if self.cap==None :
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
+        self.show_progressbar()
         tkinter.messagebox.showinfo(message='请导入背景图')
         filename = filedialog.askopenfilename(defaultextension='.jpg')
         self.backgroundImg = cv.imread(filename)
-        contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar,self.skip_num,use_contour=True)
+        _rtn = contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar,self.skip_num,use_contour=True)
+        self.hide_progressbar()
+        if _rtn != 'OK':
+            return
         if self.output_window and self.output_window.display:
             return
         
@@ -549,8 +559,12 @@ class APP:
         if self.cap==None :
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
+        self.show_progressbar()
         '''camshift被包装在contour_camshift中'''
-        contour(self.cap,None,self.master,self.output_window,self.progressbar,self.skip_num)
+        _rtn = contour(self.cap,None,self.master,self.output_window,self.progressbar,self.skip_num)
+        self.hide_progressbar()
+        if _rtn != 'OK':
+            return
         if self.output_window and self.output_window.display:
             return
         
@@ -566,11 +580,15 @@ class APP:
         if self.cap == None:
             tkinter.messagebox.showinfo(message=msg_NoVideo)
             return
+        self.show_progressbar()
         tkinter.messagebox.showinfo(message='追踪前点')
-        feature(self.cap,kind='front',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master, skip_n=self.skip_num)
+        _rtn1 = feature(self.cap,kind='front',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master, skip_n=self.skip_num)
         tkinter.messagebox.showinfo(message='追踪后点')
-        feature(self.cap,kind='back',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master,skip_n=self.skip_num)
+        _rtn2 = feature(self.cap,kind='back',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master,skip_n=self.skip_num)
+        self.hide_progressbar()
         
+        if _rtn1 != 'OK' or _rtn2 != 'OK':
+            return
         if self.output_window and self.output_window.display:
             return
         
@@ -586,10 +604,14 @@ class APP:
         if self.cap==None :
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
-        tkinter.messagebox.showinfo(message='请点击灯的位置，然后回车')
+        self.show_progressbar()
+        tkinter.messagebox.showinfo(message='请点击灯的位置')
         rtn_ = tractLight(self.cap,self.master,self.output_window,self.progressbar)
         if rtn_ == 'OK':
             tkinter.messagebox.showinfo(message='闪光提取完成')
+            self.light = 1
+            if self.status is not None:
+                self.step.set('light and process')
         else:
             if rtn_ == 'stop':
                 tkinter.messagebox.showinfo(message='提取过程中止，展示模式不记录数据')
@@ -597,9 +619,7 @@ class APP:
             else: # rtn_ == 'error'
                 pass
             cv.destroyAllWindows()
-        self.light = 1
-        if self.status is not None:
-            self.step.set('light and process')
+        self.hide_progressbar()
         self.refresh()
         
     def view_result(self):  

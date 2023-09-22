@@ -66,7 +66,7 @@ class Tractor:
         # text = "Hello, OpenCV!"
         font = cv2.FONT_HERSHEY_SIMPLEX
         font_scale = 1.0
-        color = (255, 0, 0)  # 文字颜色，BGR格式
+        color = (255, 255, 255)  # 文字颜色，BGR格式
         thickness = 2  # 文字线条粗细
 
         # 在图像上添加文字
@@ -181,12 +181,14 @@ class Tractor:
             print('color:', frame[y][x])
             print('flags:', flags)
             print(f'gbRect: {self.gbRect}')
-            
+           
+    """color""" 
     def tract_color(self, frame):
         self.gbColor = [0,0,0]
         # cv2.imshow("windowName",frame)
         # cv2.setMouseCallback("windowName", self.pointColor, frame)
         # cv2.waitKey(0)
+        self.txt(frame, color_prompt)
         if self.monitor_show(frame, function=self.pointColor, reset_function=self.color_reset) == 1:
             cv2.destroyAllWindows()
             return (-1,-1,-1)
@@ -197,8 +199,10 @@ class Tractor:
         cv2.namedWindow("roi") # 防止报错
         cv2.destroyWindow("roi")
         
+    """meanshift contour"""
     def select_rect(self, frame):
         self.gbRect = []
+        self.txt(frame, select_window_prompt)
         cv2.imshow("windowName",frame)
         cv2.setMouseCallback("windowName", self.mouse_rect, frame)
         key = cv2.waitKey(0)
@@ -220,8 +224,10 @@ class Tractor:
         print(self.gbRect)
         return self.gbRect[0][1],self.gbRect[1][1]-self.gbRect[0][1],self.gbRect[0][0],self.gbRect[1][0]-self.gbRect[0][0] # y, x, h, w
     
-    def tractPoint(self,frame):
+    """light magnify"""
+    def tractPoint(self,frame, _text):
         self.gbPoint = (-1,-1)
+        self.txt(frame, _text)
         cv2.imshow("windowName",frame)
         cv2.setMouseCallback("windowName", self.pointPos, frame)
         cv2.waitKey(0)
@@ -345,6 +351,7 @@ class Identifier(Tractor):
             # normalize
             self.K = self.normalize(self.K)
     
+    """feature"""
     def select_window(self,frame):
         '''旧的写法'''
         ''' _rtn = -1

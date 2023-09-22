@@ -24,7 +24,7 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=1000//3
     ret, frame0 = cap.read()
     # print(frame0)
     Trc = Tractor()
-    Trc.tractPoint(cv.resize(frame0,(1200,800)))
+    Trc.tractPoint(cv.resize(frame0,(1200,800)),"please click the light position, enter to confirm, q to quit, space to redo")
     x,y = Trc.gbPoint
     if x == -1 and y == -1:
         print("用户退出")
