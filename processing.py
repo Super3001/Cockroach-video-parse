@@ -889,7 +889,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     # size的格式:(x, y)
 
     Idf = Identifier()
-    showinfo(message='请拖动选择初始矩形框')
+    showinfo(message='请选择初始矩形框')
     rtn_ = Idf.select_window(frame0)
     
     (x,y,w,h), minis = rtn_ # minis未启用
@@ -1050,7 +1050,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
     Idf = Identifier()
-    showinfo(message='请拖动选择初始矩形框')
+    showinfo(message='请选择初始矩形框')
     rtn_ = Idf.select_window(frame0)
     if rtn_ == 'q':
         printb('', OutWindow)
@@ -1283,7 +1283,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
         file_center = open('out-camshift-center.txt','w')
 
     # PROCESS PREWORK
-    showinfo(message='请拖动选择覆盖整个目标物的初始矩形框')
+    showinfo(message='请选择整个目标物的初始矩形框')
     r, h, c, w = Trc.select_rect(frame0)
     if r is None:
         return 'stop'
@@ -1410,7 +1410,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
     size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
     frame_num = cap.get(7)
-    showinfo(message='请拖动选择初始矩形框')
+    showinfo(message='请选择初始矩形框')
     file_theta = open('out-contour-theta.txt','w')
     file_center = open('out-contour-center.txt','w')
     r, h, c, w = Trc.select_rect(frame0)
@@ -1545,10 +1545,10 @@ if pstatus == "debug":
         window = OutputWindow(tier)
         window.display = 1
         # window.textboxprocess.insert("0.0", "111\n")
-        # main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
+        main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
         # feature(cap,'back',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
         # feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
-        contour_lr(cap,background,root=FakeMs(),OutWindow=None,progressBar=dict(),skip_n=1, turn_start=1)
+        # contour_lr(cap,background,root=FakeMs(),OutWindow=None,progressBar=dict(),skip_n=1, turn_start=1)
         # contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
 
         # tier.mainloop()

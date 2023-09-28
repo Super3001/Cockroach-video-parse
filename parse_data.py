@@ -42,7 +42,7 @@ filtered_data = butter_bandpass_filter(y, lowcut, highcut, fs, order=order)
 """
 
 class DataParser:
-    def __init__(self, before=0.5, after=4.5, fps=60, skip_n=1) -> None:
+    def __init__(self, before=0.5, after=1.5, fps=60, skip_n=1, light=True):
         self.X1 = []
         self.Y1 = []
         self.X2 = []
@@ -58,6 +58,7 @@ class DataParser:
         self.frames = [] # frame numbers
         self.frames_adj = [] # adjacent to next frame
 
+        self.has_light = light # if there is light information
         self.light_frames = [] # all the frames when the light is on
         self.stimulus = [] # all the judged stimulate frame number
         self.durings = [] # list of index(data indices) that in each stimulate section
@@ -164,6 +165,7 @@ class DataParser:
         self.Theta=[]
         self.zerot = 0 # 可以计算出来
         
+        # 对帧
         for f in range(min(nframe_1, nframe_2)):
             i = str(f) # key也可以当做一种下标
             if i in self.X1 and i in self.X2:
@@ -203,7 +205,9 @@ class DataParser:
         self.X_mid = np.array(self.X_mid); self.Y_mid = np.array(self.Y_mid)
         self.K = np.array(self.K); self.D = np.array(self.D); self.Theta = np.array(self.Theta)
         self.smooth_thetas(90)
-        self.durings = self.sti_segment()
+        
+        if self.has_light:
+            self.durings = self.sti_segment()
         
     def parse_feature_result(self, file_f,file_b, fps):
         self.filekind = ['f','b']
@@ -338,7 +342,9 @@ class DataParser:
 
         # 分割刺激
         self.smooth_thetas(90) # 90度以上认为是跳变
-        self.durings = self.sti_segment()
+        
+        if self.has_light:
+            self.durings = self.sti_segment()
         
         ''' end '''
 
@@ -411,7 +417,9 @@ class DataParser:
                 self.frames_adj[i] = 1
 
         self.smooth_thetas(90) # 90度以上认为是跳变
-        self.durings = self.sti_segment()
+        
+        if self.has_light:
+            self.durings = self.sti_segment()
 
         ''' end '''
 

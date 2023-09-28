@@ -83,7 +83,7 @@ class Dealer(DataParser):
         self.str_scale = 'px'
         self.plot_tool = plot_tool
 
-    def save_data(self):
+    def save_midpoint_data(self):
         with open(f'results\Pos {self.filename},{self.timestr}.txt','w') as f:
             f.write('frame# \tX_mid \tY_mid\n')
             for i, frame in enumerate(self.frames):
@@ -118,7 +118,7 @@ class Dealer(DataParser):
     """@depricated: judge if a frame number in section of stimulate"""
     def in_range(self,f):
         for i in self.stimulus:
-            if f-i >= -0.5*self.fps and f-i <= 4.5*self.fps:
+            if f-i >= -0.5*self.fps and f-i <= self.after*self.fps:
                 return True
         return False
     
@@ -127,7 +127,7 @@ class Dealer(DataParser):
         for i in self.stimulus:
             x,y = [i-0.5*self.fps,i-0.5*self.fps],[down,up]
             plt.plot(x,y,color="red")
-            x,y = [i+4.5*self.fps,i+4.5*self.fps],[down,up]
+            x,y = [i+self.after*self.fps,i+self.after*self.fps],[down,up]
             plt.plot(x,y,color="navy")
     
     """@depricated: segment and plot in one function"""        
@@ -204,47 +204,50 @@ class Dealer(DataParser):
             f.write('frame_num: angle(deg)')        
             # print(self.durings)
             # print(self.frames[self.durings[0]])
-            for i, sti_ls in enumerate(self.durings):
-                sti_i = np.argmin(abs(self.frames[sti_ls] - self.stimulus[i]))
-                # subplot(1,num_stimulate,i)
-                # plt.subplot(int(f'{num_stimulate}1{i}'))
-                plt.figure(f'pAngle-{i}')
-                plt_x = []
-                plt_y = []
-                f.write(f'\nstimulus {i} ({len(sti_ls)} frames):\n')
-                for j, pf in enumerate(sti_ls):
-                    pf = int(pf)
-                    x = self.frames[pf]
-                    theta = self.Theta[pf]
-                    # if x in self.stimulus:
-                    if j == sti_i:
-                        f.write(f'{x:3d}: {theta:.6f} (stimulate)\n')
-                        plt.scatter(x,theta,c='r')
-                    else:
-                        f.write(f'{x:3d}: {theta:.6f}\n')
-                    plt_x.append(x)
-                    plt_y.append(theta)
+            if self.has_light:
+                for i, sti_ls in enumerate(self.durings):
+                    sti_i = np.argmin(abs(self.frames[sti_ls] - self.stimulus[i]))
+                    # subplot(1,num_stimulate,i)
+                    # plt.subplot(int(f'{num_stimulate}1{i}'))
+                    plt.figure(f'pAngle-{i}')
+                    plt_x = []
+                    plt_y = []
+                    f.write(f'\nstimulus {i} ({len(sti_ls)} frames):\n')
+                    for j, pf in enumerate(sti_ls):
+                        pf = int(pf)
+                        x = self.frames[pf]
+                        theta = self.Theta[pf]
+                        # if x in self.stimulus:
+                        if j == sti_i:
+                            f.write(f'{x:3d}: {theta:.6f} (stimulate)\n')
+                            plt.scatter(x,theta,c='r')
+                        else:
+                            f.write(f'{x:3d}: {theta:.6f}\n')
+                        plt_x.append(x)
+                        plt_y.append(theta)
 
-                plt_assist_f = self.assist_angle_f[sti_ls] if hasattr(self,'assist_angle_f') else None
-                plt_assist_b = self.assist_angle_b[sti_ls] if hasattr(self,'assist_angle_b') else None
-                
-                plt.plot(plt_x, plt_y, c='b')
-                if plt_assist_f is not None:
-                    plt.plot(plt_x, plt_assist_f, c=(0,0.9,0)) # c: (r,g,b)
-                if plt_assist_b is not None:
-                    plt.plot(plt_x, plt_assist_b, c=(0.9,0,0.9))
-                
-                plt.xlabel('x')
-                plt.ylabel('y')
-                plt.title('Plotting Curve')
-                plt.xlabel('number of frame')
-                plt.ylabel('angle(deg)') # 单位：角度
-                plt.title('angle curve')
-                plt.savefig(f'fig\pAngle-stimulus{i+1}.png')
-                plt.show()
+                    plt_assist_f = self.assist_angle_f[sti_ls] if hasattr(self,'assist_angle_f') else None
+                    plt_assist_b = self.assist_angle_b[sti_ls] if hasattr(self,'assist_angle_b') else None
                     
-            # plt.show()
-            f.write('end\n\nall frames: \n')
+                    plt.plot(plt_x, plt_y, c='b')
+                    if plt_assist_f is not None:
+                        plt.plot(plt_x, plt_assist_f, c=(0,0.9,0)) # c: (r,g,b)
+                    if plt_assist_b is not None:
+                        plt.plot(plt_x, plt_assist_b, c=(0.9,0,0.9))
+                    
+                    plt.xlabel('x')
+                    plt.ylabel('y')
+                    plt.title('Plotting Curve')
+                    plt.xlabel('number of frame')
+                    plt.ylabel('angle(deg)') # 单位：角度
+                    plt.title('angle curve')
+                    plt.savefig(f'fig\pAngle-stimulus{i+1}.png')
+                    plt.show()
+                        
+                # plt.show()
+                f.write('end\n\nall frames: \n')
+            else:
+                f.write('all frames:\n')
             for i in range(self.num):
                 if i > 1 and self.frames[i] - self.frames[i-1] > 1:
                     f.write(black_sign+'\n')
@@ -274,8 +277,8 @@ class Dealer(DataParser):
         # output_file(filename="res_Angle.html", title="angle result")
         # save(self.pAngle)
         # save(self.pAngle_interp)
-        points = [(self.frames[i],self.Theta[i]) for i in range(len(self.frames)) if i in self.durings[0]]
-        tList = np.linspace(0,1,200)
+        # points = [(self.frames[i],self.Theta[i]) for i in range(len(self.frames)) if i in self.durings[0]]
+        # tList = np.linspace(0,1,200)
         # show_curve(points,tList)
         # show_der(points,tList)
         # show(self.pAngle)
@@ -284,6 +287,9 @@ class Dealer(DataParser):
         plt.show()
         
     def showOmega(self):
+        if not self.has_light:
+            self.show_omega_all()
+            return
         move_flag = True if len(self.X1) > 0 else False
         plt.figure('pOmega')
         omega_center = 0
@@ -299,16 +305,16 @@ class Dealer(DataParser):
         # print(self.stimulus[stimulate])
         # print(self.frames)
         # exit(0)
-        if self.root:
-            self.progressBar['maximum'] = round(self.stimulus[-1] / self.skip_n)
+        # if self.root:
+        #     self.progressBar['maximum'] = round(self.stimulus[-1] / self.skip_n)
         
         max_f = 0
         for i in range(len(self.frames_adj)-1):
             f = self.frames[i]
             
-            if self.root:
-                self.progressBar['value'] = i
-                self.root.update()
+            # if self.root:
+            #     self.progressBar['value'] = i
+            #     self.root.update()
             
             if self.frames_adj[i] and self.frames_adj[i+1]:
                 
@@ -365,7 +371,7 @@ class Dealer(DataParser):
                     # self.pOmega.circle(i,omega_move,size=10, line_color="white", fill_color="green", fill_alpha=0.5)
                     
             else:
-                if f2sec(f - self.stimulus[stimulate],self.fps) > 4.5:
+                if f2sec(f - self.stimulus[stimulate],self.fps) > self.after:
                     flag = 0
                     stimulate+=1
                     if stimulate==len(self.stimulus):
@@ -384,8 +390,8 @@ class Dealer(DataParser):
         # self.pOmega.xaxis.axis_label = "帧序号"
         # self.pOmega.yaxis.axis_label = "转向角速度"
 
-        xh = [-1,max_f+1]; yh = [0, 0]
-        plt.plot(xh, yh, color='black')  # 绘制直线，设置颜色为...
+        # xh = [-1,max_f+1]; yh = [0, 0]
+        # plt.plot(xh, yh, color='black')  # 绘制直线，设置颜色为...
         
         plt.xlabel('number of frame')
         plt.ylabel('angular speed(deg/s)')
@@ -400,6 +406,56 @@ class Dealer(DataParser):
         plt.savefig('fig\pOmega.png')
         plt.show()
         
+    def show_omega_all(self):
+        move_flag = True if len(self.X1) > 0 else False
+        plt.figure('pOmega')
+        omega_center = 0
+        omega_front = 0
+        omega_back = 0
+        omega_move = 0
+        omega_min = pi/2
+        omega_max = -pi/2
+        for i in range(len(self.frames_adj)-1):
+                f = self.frames[i]
+                
+                if self.frames_adj[i] and self.frames_adj[i+1]:
+                    omega_center = (self.Theta[i+1] - self.Theta[i]) / self.fps
+                    if move_flag: # 可以计算摆动角速度
+                        omega_front = self.calc_1(i+1)
+                        omega_back = self.calc_2(i+1)
+                elif self.frames_adj[i]:
+                    omega_center = (self.Theta[i] - self.Theta[i-1]) / self.fps
+                    if move_flag:
+                        omega_front = 0
+                        omega_back = 0
+                else:
+                    omega_center = 0
+                    if move_flag:
+                        omega_front = 0
+                        omega_back = 0
+                
+                omega_move = omega_front+omega_back-2*omega_center
+                if omega_move > omega_max:
+                    omega_max = omega_move
+                if omega_center > omega_max:
+                    omega_max = omega_center
+                if omega_move < omega_min:
+                    omega_min = omega_move
+                if omega_center < omega_min:
+                    omega_min = omega_center
+                    
+                if move_flag:
+                    plt.scatter(f,omega_move,c='green')
+                plt.scatter(f,omega_center,c='b')
+                
+        plt.xlabel('number of frame')
+        plt.ylabel('angular speed(deg/s)')
+        plt.title('turning omega curve')
+        self.horizontal(-1,self.nframe+1)
+        plt.legend()
+        plt.savefig('fig\pOmega.png')
+        plt.show()
+            
     def calc_1(self,i):
         k2 = atan((self.Y1[i]-self.Y1[i-1])/(self.X1[i]-self.X1[i-1])) if self.X1[i] != self.X1[i-1] else pi/2
         k1 = atan((self.Y1[i-1]-self.Y1[i-2])/(self.X1[i-1]-self.X1[i-2])) if self.X1[i-1] != self.X1[i-2] else pi/2
@@ -411,6 +467,11 @@ class Dealer(DataParser):
         return (k2 - k1) / self.fps if k2 != k1 else 0
         
     def showPath(self,):
+        self.save_midpoint_data()
+        if not self.has_light:
+            self.show_path_all()
+            return
+        # show_path_light
         plt.figure('pPath')
         flag = 1 if len(self.X1) > 0 else 0 # if front and back path can be drawn
         
@@ -478,7 +539,29 @@ class Dealer(DataParser):
                 plt.title(f'path curve: stimulus{i+1}')
                 plt.savefig(f'fig\pPath_{i+1}.png')
                 plt.show()
+    def show_path_all(self):
+        plt.figure('pPath')
+        flag = 1 if len(self.X1) > 0 else 0 # if front and back path can be drawn
         
+        plt.plot(self.X_mid, self.Y_mid,c='b',label='mid')
+        plt.scatter(self.X_mid[0], self.Y_mid[0], color='#FA9A3F', s=50, marker='*', label='start', zorder=50)
+        plt.scatter(self.X_mid[-1], self.Y_mid[-1], color='#49DBF5', s=50, marker='*', label='end', zorder=50)
+        
+        if flag:
+            plt.plot(self.X1,self.Y1,c='green',label='front')
+            plt.plot(self.X2,self.Y2,c='purple',label='back')
+            plt.scatter(self.X1[0], self.Y1[0], color='#FA9A3F', s=50, marker='*', zorder=50)
+            plt.scatter(self.X2[0], self.Y2[0], color='#FA9A3F', s=50, marker='*', zorder=50)
+            plt.scatter(self.X1[-1], self.Y1[-1], color='#49DBF5', s=50, marker='*', zorder=50)
+            plt.scatter(self.X2[-1], self.Y2[-1], color='#49DBF5', s=50, marker='*', zorder=50)
+                            
+        plt.xlabel(f'x({self.str_scale})')
+        plt.ylabel(f'y({self.str_scale})')
+        plt.legend()
+        plt.title('path curve')
+        plt.savefig('fig\pPath.png')
+        plt.show()
+    
     def gen_curve_points(self):
         curve_point = []
         cp_indexes = []
@@ -494,6 +577,9 @@ class Dealer(DataParser):
         self.cp_indexes = cp_indexes
 
     def showCurve(self):
+        if self.has_light == 0:
+            showwarning('','未设置无控制信号时的转向半径计算')
+            return
         with open(f'results\Turning Radius {self.filename},{self.timestr}.txt','w') as f:
 
             _type = 'mean'

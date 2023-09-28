@@ -24,7 +24,7 @@ if pstatus == "debug":
     pass
 
 # 提示信息
-Prompt = "\n1.图像展示过程按q退出\n2.按空格键暂停\n\n现在时间：{}\n欢迎使用二维目标追踪程序"
+Prompt = "\n1.提取展示过程中按q退出\n2.按空格键暂停\n\n现在时间：{}\n欢迎使用二维目标追踪程序"
 msg_NoVideo = '请先导入视频'
 
 # 缩放比例 x: cm/px
@@ -502,7 +502,7 @@ class APP:
             tkinter.messagebox.showinfo(message='请先导入文件')
             return
         self.show_progressbar()
-        tkinter.messagebox.showinfo(message='请拖动选择覆盖后点矩形框')
+        tkinter.messagebox.showinfo(message='请选择后标记点矩形框')
         _rtn1 = meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm,self.skip_num)
         if self.output_window and self.output_window.display:
             if _rtn1 == 'stop':
@@ -511,7 +511,7 @@ class APP:
             else:
                 self.output_window.textboxprocess.insert('0.0','前点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
-        tkinter.messagebox.showinfo(message='请拖动选择覆盖前点的矩形框')
+        tkinter.messagebox.showinfo(message='请选择后标记点矩形框')
         _rtn2 = meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm,self.skip_num)
         if self.output_window and self.output_window.display:
             if _rtn2 == 'stop':
@@ -627,11 +627,11 @@ class APP:
         self.dealer = data_dealer
         data_dealer.To_origin()
         if self.light:
+            data_dealer.has_light = 1
             file_light = open('out-light-every.txt','r')
             data_dealer.parse_light(file_light, self.fps)
         else:
-            tkinter.messagebox.showinfo(message='请先提取闪光')
-            return
+            data_dealer.has_light = 0
                 
         if self.status == 'color':
             file_f = open('out-color-1.txt','r')
@@ -672,7 +672,6 @@ class APP:
                 os.mkdir(directory_name)
         
         self.show_result()
-        data_dealer.save_data() # save data every time parsing...
         
         tier1 = Tk()
         result_window = ResWindow(tier1,data_dealer)
