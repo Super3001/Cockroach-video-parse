@@ -407,8 +407,6 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
 
             rtn, center = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],midval, 15, pre_state, np.linalg.norm(size) // 10, OutWindow)
             # thresh_dist = np.linalg.norm(size) // 10
-            center_0 = (center[0]+domain[0], center[1]+domain[2])
-            
             if rtn==0:
                 pre_state = -1
                 domain = (0,size[1] - 1,0,size[0] - 1)
@@ -421,6 +419,7 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
                 cv.destroyAllWindows()
                 break
             else:
+                center_0 = (center[0]+domain[0], center[1]+domain[2])
                 frame_show = frame.copy()
                 domain = (domain[0]+center[0]-border,domain[0]+center[0]+border, domain[2]+center[1]-border,domain[2]+center[1]+border)
                 # restrict to boundary
