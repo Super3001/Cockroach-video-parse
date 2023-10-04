@@ -379,7 +379,6 @@ class DataParser:
         self.Y_mid = []
         for i in data1:
             frame, x, y = i.split()
-            x = x[:-1] # (x, y)格式，去掉','
             x=float(x)
             y=-float(y)
             frame = int(frame)

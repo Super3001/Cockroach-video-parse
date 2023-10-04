@@ -1,24 +1,20 @@
 # CVP program debug
 
+## 现存的一些问题：
 
+滑动窗口普遍存在抖动的问题
+
+## debug记录
 
 ![image-20230831100922669](D:\GitHub\Cockroach-video-parse\src\md_img\image-20230831100922669.png)
 
-
-
 2. thresh
-
-
 
 3. output window
 
-
-
 4. color的异常处理
 
-
 5. destroywindows前的判断
-
 
 9.1.2023
 
@@ -50,3 +46,6 @@
 
 2. 保存数据格式的问题
 
+10.1.2023
+
+1.一般识别（前后点）改回meanshift

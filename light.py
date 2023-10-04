@@ -17,21 +17,19 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=1000//3
         show_time: int - 毫秒
     """
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
-    # w, h = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
-            # int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
     num = cap.get(7)
-    # print(cap)
     ret, frame0 = cap.read()
-    # print(frame0)
+    
     Trc = Tractor()
-    Trc.tractPoint(cv.resize(frame0,(1200,800)),"please click the light position, enter to confirm, q to quit, space to redo")
+    _rtn = Trc.tractPoint(cv.resize(frame0,(1200,800)),"click the light position, press enter to confirm, q to quit, space to redo")
     x,y = Trc.gbPoint
-    if x == -1 and y == -1:
-        print("用户退出")
-        return 'quit'
+    print(x, y)
+    if _rtn == 'quit' or x == -1 or y == -1:
+        return 'stop'
+    
     domain = [y-3,y+3,x-3,x+3] # 上，下，左，右
     file = open('out-light-every.txt','w')
-    # cap.set(cv.CAP_PROP_POS_FRAMES, 0)
+    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.delete('0.0','end')
         OutWindow.textboxprocess.insert('0.0',"闪光帧序号：\n")
@@ -88,4 +86,5 @@ if pstatus == "debug":
 
     if __name__ == '__main__':
         cap = cv.VideoCapture("D:\\GitHub\\Cockroach-video-parse\\src\\DSC_2059.MOV")
+        
         tractLight(cap, master=FakeMs(),OutWindow=None,progressBar=dict())

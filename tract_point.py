@@ -37,10 +37,10 @@ class Tractor:
         if function is not None:
             cv2.setMouseCallback("image", function, frame)
         key = cv2.waitKey(time)
-        print(key)
+        # print(key)
         if key == -1:
             '''代表已经处理过了'''
-            print(self.status)
+            # print(self.status)
             return -1 # 代表unknown(?)
         if key == ord('q'):
             '''取消：退出选择'''
@@ -118,7 +118,7 @@ class Tractor:
             if key == 13: # ENTER
                 res = askyesno('Confirm',f'Color(BGR): {self.gbColor} \nconfirm?')
                 if res == 1:
-                    print("done")
+                    # print("done")
                     self.status = "done"
                     cv2.destroyAllWindows()
                 else:
@@ -132,7 +132,7 @@ class Tractor:
                 print('previous unhandle:')
                 print('status:', self.status)
             else:
-                print(key)
+                # print(key)
                 self.status = 'waiting'
                 cv2.destroyWindow("color")
     
@@ -230,12 +230,14 @@ class Tractor:
         self.txt(frame, _text)
         cv2.imshow("windowName",frame)
         cv2.setMouseCallback("windowName", self.pointPos, frame)
-        cv2.waitKey(0)
+        key = cv2.waitKey(0)
+        if key == ord('q'):
+            return 'quit'
         cv2.destroyAllWindows()
-        print('mutiple', self.mutiple)
+        # print('mutiple', self.mutiple)
         x,y = self.gbPoint
         self.gbPoint = (x*self.mutiple, y*self.mutiple)
-        return
+        return 'ok'
     
     def inputbox(self, root, show_text):
         self.gbInput = None # 防止得到错误的输入
@@ -376,8 +378,9 @@ class Identifier(Tractor):
             return (-1,)*4, []
         # elif _rtn == 0:
         elif self.status == 'done':
-            print('done')
+            # print('done')
             cv2.destroyAllWindows()
+            print(f'{self.gbRect} format:xywh')
             self.generate_kernal(kind='sin')
             # return g_rect, minis
             return self.gbRect, []
@@ -389,7 +392,7 @@ class Identifier(Tractor):
         
     def idf_reset(self):
         
-        print('reset')
+        # print('reset')
         window_name = "roi"
 
         # 检查窗口是否存在
@@ -448,7 +451,7 @@ class Identifier(Tractor):
             pass
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture(r"D:\Github\Cockroach-video-parse\src\DSC_2059.mp4")
+    cap = cv2.VideoCapture(r"D:\Github\Cockroach-video-parse\src\DSC_2059.MOV")
     ret, img = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))

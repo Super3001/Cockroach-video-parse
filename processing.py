@@ -1,5 +1,5 @@
 import cv2 as cv
-from tkinter.messagebox import showinfo, showerror
+from tkinter.messagebox import showinfo, showerror, showwarning
 from tract_point import *
 import numpy as np
 import math
@@ -132,6 +132,18 @@ def cleanout(points, domain):
     return cleaned_points
 
 def print_mid_point(rect: list|tuple, sep=','):
+    """in:yyxx or xy
+
+    Args:
+        rect (list | tuple): yyxx or xy
+        sep (str, optional): _description_. Defaults to ','.
+
+    Raises:
+        Exception: _description_
+
+    Returns:
+        str: midpoint: xy
+    """
     if len(rect) == 4:
         x = (rect[2]+rect[3])/2
         y = (rect[0]+rect[1])/2
@@ -141,7 +153,7 @@ def print_mid_point(rect: list|tuple, sep=','):
     else:
         raise Exception('rect的长度错误，应为2或4')
 
-def extract_features_from_mask(mask, pre_point, thresh_dist):
+'''def extract_features_from_mask(mask, pre_point, thresh_dist):
     # 寻找所有为True的点的坐标
     points = np.argwhere(mask)
     
@@ -155,7 +167,7 @@ def extract_features_from_mask(mask, pre_point, thresh_dist):
     valid_points = points[valid_indices]
     center_positions = valid_points.mean(axis=0)
     
-    return center_positions
+    return center_positions'''
 
 def color_deal(frame,midval:tuple,dis:int,pre_state,thresh_dist,OutWindow=None):
     """
@@ -481,7 +493,7 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
 
     cap.set(cv.CAP_PROP_POS_FRAMES, 0) # 重置为第一帧
     
-    stdoutpb = Stdout_progressbar(num, not(OutWindow and OutWindow.display))
+    stdoutpb = Stdout_progressbar(num)
     cnt = 0
     progressBar['maximum'] = num
     # OutWindow.discontinue = False
@@ -520,10 +532,10 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
                 dst = cv.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
 
                 # 4.4 进行meanshift追踪
-                # ret, track_window = cv.meanShift(dst, track_window, term_crit)
-                ret, track_window = cv2.CamShift(dst, track_window, term_crit)
+                ret, track_window = cv.meanShift(dst, track_window, term_crit)
+                # ret, track_window = cv2.CamShift(dst, track_window, term_crit)
 
-                center, size, angle = ret # 解包
+                # center, size, angle = ret # 解包
 
                 # 4.5 将追踪的位置绘制在视频上，并进行显示
                 if OutWindow and OutWindow.display:
@@ -568,11 +580,11 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
                 dst = cv.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
 
                 # 4.4 进行meanshift追踪
-                # ret, track_window = cv.meanShift(dst, track_window, term_crit)
-                ret, track_window = cv2.CamShift(dst, track_window, term_crit)
+                ret, track_window = cv.meanShift(dst, track_window, term_crit)
+                # ret, track_window = cv2.CamShift(dst, track_window, term_crit)
 
-                center, size, angle = ret # 解包
-
+                # center, size, angle = ret # 解包
+                
                 # 4.5 将追踪的位置绘制在视频上，并进行显示
                 if OutWindow and OutWindow.display:
                     x, y, w, h = track_window
@@ -909,7 +921,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     # domain = (max_angle_pos[0]-offset,max_angle_pos[0]+offset, max_angle_pos[1]-offset,max_angle_pos[1]+offset) # 更新domain
 
     # 初始化参数
-    stdoutpb = Stdout_progressbar(frame_num, not(OutWindow and OutWindow.display))
+    stdoutpb = Stdout_progressbar(frame_num)
     progressBar['maximum'] = frame_num
     success = 1
     # cnt = 0
@@ -1148,17 +1160,12 @@ def tilt(edge, display, method='linear regression'):
     if display:
         edge_show1 = edge.copy()
         edge_show1 = cv.rectangle(edge_show1, (rect[2],rect[0]), (rect[3],rect[1]), 255, 2)
-        print(rect0)
-        print(rect)
     
     X = [x[0] for x in points]
     Y = [-x[1] for x in points]
     f = np.polyfit(X,Y,1)
     angle = math.atan(f[0])*180/math.pi
     if display:
-        print('angle:',angle)
-        # edge_show1 = cv.circle(edge_show1,(rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
-        # edge_show1 = cv.circle(edge_show1,(rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))),3,255)
         edge_show1 = cv.line(edge_show1, (rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))), (rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))), 255, 2)
         if my_show(edge_show1, _time=100):
             cv2.destroyAllWindows()
@@ -1330,7 +1337,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
     # term_crit = (cv2.TERM_CRITERIA_EPS, 1, 1)
 
     # PROCESS INIT
-    stdoutpb = Stdout_progressbar(frame_num, not(OutWindow and OutWindow.display))
+    stdoutpb = Stdout_progressbar(frame_num)
     progressBar['maximum'] = frame_num
     success = 1
     cnt = turn_start - 1
@@ -1382,7 +1389,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
                     cv.destroyAllWindows()
                     return 'stop'
             else:
-                file_center.write(f'{cnt} {str(center)[1:-1]}\n') # 去掉左右括号
+                file_center.write(f'{cnt} {print_mid_point(center)}\n')
                 file_theta.write(f'{cnt} {round(angle,2)}\n')
 
             # LOOP TAIL
@@ -1445,7 +1452,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
             printb(f'angle: {angle}', OutWindow)
     
     # 初始化参数
-    stdoutpb = Stdout_progressbar(frame_num, not(OutWindow and OutWindow.display))
+    stdoutpb = Stdout_progressbar(frame_num)
     progressBar['maximum'] = frame_num
     success = 1
     cnt = turn_start - 1
@@ -1475,7 +1482,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
         if num < 10:
             domain = (0, frame0.shape[0], 0, frame0.shape[1])
             if OutWindow and OutWindow.display:
-                OutWindow.textboxprocess.insert('0.0', f'(0, 0)  0\n')
+                OutWindow.textboxprocess.insert('0.0', f'(0, 0)  \nangle: 0\n')
             else:
                 file_center.write(f'{cnt} 0 0\n')
                 file_theta.write(f'{cnt} 0\n')
@@ -1483,7 +1490,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
         domain = (rect[0]+domain[0]-border,rect[1]+domain[0]+border, rect[2]+domain[2]-border,rect[3]+domain[2]+border)
         domain = restrict_to_boundary(domain, size[1], size[0])
         if OutWindow and OutWindow.display:
-            OutWindow.textboxprocess.insert('0.0', f'({print_mid_point(domain)})  {round(angle,2)}\n')
+            OutWindow.textboxprocess.insert('0.0', f'({print_mid_point(domain)}) \nangle:{round(angle,2)}\n')
         else:
             file_center.write(f'{cnt} {print_mid_point(domain,sep=" ")}\n')
             file_theta.write(f'{cnt} {round(angle,2)}\n')
@@ -1513,12 +1520,13 @@ class FakeMs:
         self.cnt += 1
 
 if pstatus == "debug":
-    cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\前后颜色标记点.mp4")
-    # cap = cv2.VideoCapture(r"C:\Users\LENOVO\Videos\10Hz，左，样本3 00_00_00-00_00_19.40_Trim.mp4")
+    # cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\前后颜色标记点.mp4")
+    cap = cv2.VideoCapture(r"D:\GitHub\Cockroach-video-parse\src\前后特征标记点.mp4")
+    
     ret, frame0 = cap.read()
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-    background = cv2.imread(r"D:\GitHub\Cockroach-video-parse\src\filename.png")
+    background = cv2.imread(r"D:\GitHub\Cockroach-video-parse\src\background-feature.png")
     from tkinter import *
     Prompt = "this is a debug trial "
     class OutputWindow:
@@ -1539,15 +1547,17 @@ if pstatus == "debug":
         def close(self):
             self.master.destroy()
             
+        def lift(self):
+            self.master.lift()
+            
     if __name__ == '__main__':
         tier = Tk()
         window = OutputWindow(tier)
         window.display = 1
-        # window.textboxprocess.insert("0.0", "111\n")
-        main_color(cap,'back',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=10)
-        # feature(cap,'back',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
-        # feature(cap,'back',progressBar=dict(),root=FakeMs(),skip_n=2, turn_start=1)
-        # contour_lr(cap,background,root=FakeMs(),OutWindow=None,progressBar=dict(),skip_n=1, turn_start=1)
+        # meanshift(cap,'front',FakeMs(),window,dict())
+        # main_color(cap,'front',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1)
+        # feature(cap,'back',OutWindow=None,progressBar=dict(),root=FakeMs(),skip_n=1, turn_start=1)
+        contour_lr(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
         # contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
 
         # tier.mainloop()

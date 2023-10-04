@@ -1,6 +1,5 @@
 from tkinter import *
 from tkinter import ttk
-import tkinter.messagebox
 from tkinter import filedialog
 import cv2 as cv
 from processing import *
@@ -9,6 +8,7 @@ from deal_data import Dealer
 import utils
 import sys, os
 import control
+from signals import msg_NoVideo
 
 '''
 # TODO:
@@ -19,25 +19,18 @@ window size
 
 # 项目状态
 pstatus = control.pstatus
-   
-if pstatus == "debug":
-    pass
 
 # 提示信息
 Prompt = "\n1.提取展示过程中按q退出\n2.按空格键暂停\n\n现在时间：{}\n欢迎使用二维目标追踪程序"
-msg_NoVideo = '请先导入视频'
 
 # 缩放比例 x: cm/px
 View = 50 # 屏幕上50px -> 1cm
-# 窗口大小: 响应式
 WIDTH = 1520
 HEIGHT = 750
 str_geometryProperty = f'{WIDTH}x{HEIGHT}+50+50'
-# str_geometryProperty = '1200x700+50+50'
 
 # 设置全局异常处理程序
 # utils.set_exit()
-
 
 
 class APP:
@@ -310,10 +303,10 @@ class APP:
         # properties
         self.cap = None
         if(self.project_status == 'debug'):
-            self.status = 'contour'
+            self.status = 'color'
             self.light = 1
             self.fps = 30
-            self.filename = 'example.mp4'
+            self.filename = 'color_example.mp4'
             # self.magRatio = 0.0308*50
             self.magRatio = 0
             self.Ratio_to_cm = 0.0308
@@ -376,13 +369,18 @@ class APP:
         if not filepath: # 打开文件失败
             print('用户退出')
             return
-        # tkinter.messagebox.showinfo(message=filename)
+        if not filepath.lower().endswith(('.mp4', '.avi', '.mov', '.wmv', '.mpg', '.mpeg', '.flv', '.vob', '.3gp', '.3g2', '.asf', '.avchd', '.dv', '.matroska', '.mjpg', '.nsv', '.ogg', '.qt', '.riff', '.swf', '.videocd', '.webm')):
+            showwarning('warning','请检查文件格式，不支持该格式文件')
+            print('请检查文件格式，不支持该格式文件')
+            return
         self.cap = cv.VideoCapture(filepath)
-        if self.cap == None: # 打开文件失败
+        # 检测视频格式
+        ret = self.cap.read()[0]
+        if not ret:
+            showwarning('warning','打开文件失败')
             print('打开文件失败')
             return
         self.filename = os.path.basename(filepath)
-        print(self.filename)
         self.video_width = int(self.cap.get(3))
         self.video_height = int(self.cap.get(4))
         self.fps = int(round(self.cap.get(5)))
@@ -397,14 +395,14 @@ class APP:
         
     def go_magnify(self):
         if self.cap == None:
-            tkinter.messagebox.showinfo(message=msg_NoVideo)
+            showinfo(message=msg_NoVideo)
             return
         self.bodyLength, self.measure, self.first_middle_point = Magnify(self.cap, self.master)
         self.Ratio_to_cm = self.bodyLength / self.measure
         self.magRatio = View*self.bodyLength / self.measure
         if self.output_window and self.output_window.display:
             self.output_window.ratio = self.magRatio
-        tkinter.messagebox.showinfo(message=f'{self.bodyLength}cm : {self.measure:.1f}px \n'
+        showinfo(message=f'{self.bodyLength}cm : {self.measure:.1f}px \n'
                                     f'or 1 px : {self.Ratio_to_cm:.4f}cm')
         self.Ratio_to_m = self.magRatio*0.001
         # self.show_first_frame()
@@ -414,11 +412,11 @@ class APP:
         self.magRatio = 0
         if self.output_window and self.output_window.display:
             self.output_window.ratio = 0
-        tkinter.messagebox.showinfo(message='已关闭缩放')
+        showinfo(message='已关闭缩放')
         
     def show_first_frame(self):
         if not self.cap:
-            tkinter.messagebox.showinfo(message=msg_NoVideo)
+            showinfo(message=msg_NoVideo)
             return
         self.cap.set(1, 0) # 重置为第一帧
         ret, frame0 = self.cap.read()
@@ -430,18 +428,18 @@ class APP:
     def set_process_multiple(self):
         self.pm = eval(self.e1.get())
         if type(self.pm) not in [int, float]or self.pm <= 0:
-            tkinter.messagebox.showinfo(message='请输入正整数！')
+            showinfo(message='请输入正整数！')
             self.pm = 1
         else:
-            tkinter.messagebox.showinfo(message=f'已修改过程缩放倍数：{self.pm}')
+            showinfo(message=f'已修改过程缩放倍数：{self.pm}')
 
     def set_reading_multiple(self):
         self.rm = eval(self.e2.get())
         if type(self.pm) not in [int, float] or self.rm <= 0:
-            tkinter.messagebox.showinfo(message='请输入正数！')
+            showinfo(message='请输入正数！')
             self.rm = 1
         else:
-            tkinter.messagebox.showinfo(message=f'已修改过程缩放倍数：{self.rm}')
+            showinfo(message=f'已修改过程缩放倍数：{self.rm}')
            
     def on_closing(self):
         self.output_window.display = 0
@@ -458,7 +456,7 @@ class APP:
             if self.magRatio > 0:
                 # self.output_window.ratio = self.magRatio
                 self.output_window.textboxprocess.insert('0.0','ratio: '+str(self.output_window.ratio)+'\n')
-            # tkinter.messagebox.showinfo(message='已打开提取过程展示')
+            # showinfo(message='已打开提取过程展示')
             self.output_window.startTime = utils.timestr()
             # print(self.output_window.startTime)
             self.tier2.mainloop()
@@ -470,11 +468,11 @@ class APP:
             # self.master.geometry(str_geometryProperty)
         else:
             print('窗口已经关闭')
-        # tkinter.messagebox.showinfo(message='已关闭提取过程展示')
+        # showinfo(message='已关闭提取过程展示')
         
     def go_color(self):
         if self.cap==None :
-            tkinter.messagebox.showinfo(message='请先导入文件')
+            showinfo(message='请先导入文件')
             return
         self.show_progressbar()
         _rtn1 = main_color(self.cap,'front',self.master,
@@ -499,10 +497,10 @@ class APP:
         
     def go_meanshift(self):
         if self.cap==None :
-            tkinter.messagebox.showinfo(message='请先导入文件')
+            showinfo(message='请先导入文件')
             return
         self.show_progressbar()
-        tkinter.messagebox.showinfo(message='请选择后标记点矩形框')
+        showinfo(message='请选择前标记点矩形框')
         _rtn1 = meanshift(self.cap,'front',self.master,self.output_window,self.progressbar,self.pm,self.skip_num)
         if self.output_window and self.output_window.display:
             if _rtn1 == 'stop':
@@ -511,7 +509,7 @@ class APP:
             else:
                 self.output_window.textboxprocess.insert('0.0','前点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
-        tkinter.messagebox.showinfo(message='请选择后标记点矩形框')
+        showinfo(message='请选择后标记点矩形框')
         _rtn2 = meanshift(self.cap,'back',self.master ,self.output_window,self.progressbar,self.pm,self.skip_num)
         if self.output_window and self.output_window.display:
             if _rtn2 == 'stop':
@@ -534,10 +532,10 @@ class APP:
         
     def go_contour(self):
         if self.cap==None :
-            tkinter.messagebox.showinfo(message='请先导入文件')
+            showinfo(message='请先导入文件')
             return
         self.show_progressbar()
-        tkinter.messagebox.showinfo(message='请导入背景图')
+        showinfo(message='请导入背景图')
         filename = filedialog.askopenfilename(defaultextension='.jpg')
         self.backgroundImg = cv.imread(filename)
         _rtn = contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar,self.skip_num,use_contour=True)
@@ -557,7 +555,7 @@ class APP:
         
     def go_camshift(self):
         if self.cap==None :
-            tkinter.messagebox.showinfo(message='请先导入文件')
+            showinfo(message='请先导入文件')
             return
         self.show_progressbar()
         '''camshift被包装在contour_camshift中'''
@@ -578,12 +576,12 @@ class APP:
 
     def go_feature(self):
         if self.cap == None:
-            tkinter.messagebox.showinfo(message=msg_NoVideo)
+            showinfo(message=msg_NoVideo)
             return
         self.show_progressbar()
-        tkinter.messagebox.showinfo(message='追踪前点')
+        showinfo(message='追踪前点')
         _rtn1 = feature(self.cap,kind='front',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master, skip_n=self.skip_num)
-        tkinter.messagebox.showinfo(message='追踪后点')
+        showinfo(message='追踪后点')
         _rtn2 = feature(self.cap,kind='back',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master,skip_n=self.skip_num)
         self.hide_progressbar()
         
@@ -602,19 +600,19 @@ class APP:
         
     def tract_light(self):
         if self.cap==None :
-            tkinter.messagebox.showinfo(message='请先导入文件')
+            showinfo(message='请先导入文件')
             return
         self.show_progressbar()
-        tkinter.messagebox.showinfo(message='请点击灯的位置')
+        showinfo(message='请点击灯的位置')
         rtn_ = tractLight(self.cap,self.master,self.output_window,self.progressbar)
         if rtn_ == 'OK':
-            tkinter.messagebox.showinfo(message='闪光提取完成')
+            showinfo(message='闪光提取完成')
             self.light = 1
             if self.status is not None:
                 self.step.set('light and process')
         else:
             if rtn_ == 'stop':
-                tkinter.messagebox.showinfo(message='提取过程中止，展示模式不记录数据')
+                showinfo(message='提取过程中止，展示模式不记录数据')
                 self.output_window.textboxprocess.insert('0.0',"提取过程中止，展示模式不记录数据\n")
             else: # rtn_ == 'error'
                 pass
@@ -623,7 +621,7 @@ class APP:
         self.refresh()
         
     def view_result(self):  
-        data_dealer = Dealer(self.fps, f'{self.filename} {self.status}',self.master,self.progressbar,self.detect_mark_str,self.skip_num)
+        data_dealer = Dealer(self.fps, f'{self.filename}({self.status})',self.master,self.progressbar,self.detect_mark_str,self.skip_num)
         self.dealer = data_dealer
         data_dealer.To_origin()
         if self.light:
@@ -659,7 +657,7 @@ class APP:
             data_dealer.parse_center_angle(file_center,file_angle,self.fps)
             
         else:
-            tkinter.messagebox.showinfo(message='请先处理视频')
+            showinfo(message='请先处理视频')
             return
 
         if self.magRatio > 0:
@@ -700,7 +698,7 @@ class APP:
             self.dialog.destroy()
 
     def show_result(self):
-        tkinter.messagebox.showinfo(message='共提取到 %d帧信息，%d帧有效信息，%d次有效刺激' % 
+        showinfo(message='共提取到 %d帧信息，%d帧有效信息，%d次有效刺激' % 
         (min(self.dealer.num1,self.dealer.num2), self.dealer.num, len(self.dealer.stimulus)))
 
     
@@ -796,9 +794,9 @@ class OutputWindow:
         pid = utils.get_pid(self.startTime)
         utils.upLift(pid)
         
-def main():
+def main(ps):
     root = Tk()
-    app = APP(root, pstatus)
+    app = APP(root, ps)
     root.geometry(str_geometryProperty)
     root.mainloop()
     
@@ -808,6 +806,5 @@ def Reswindow_main():
     root.mainloop()
     
 if __name__ == '__main__':
-    pstatus = "debug"
-    main()
+    main("debug")
     # Reswindow_main()
