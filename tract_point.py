@@ -98,7 +98,8 @@ class Tractor:
             cv2.moveWindow("Point",x-edge//2,y-edge//2)
             key = cv2.waitKey(0) & 0xFF
             if key == 13: # ENTER
-                print(self.gbPoint)
+                print('')
+                print('point:',self.gbPoint,'format:xy')
                 self.status = 'done'
                 cv2.destroyAllWindows()
             else:
@@ -129,8 +130,9 @@ class Tractor:
                 cv2.destroyAllWindows()
             # elif key == -1:
             elif key == 255:
-                print('previous unhandle:')
-                print('status:', self.status)
+                pass
+                # print('previous unhandle:')
+                # print('status:', self.status)
             else:
                 # print(key)
                 self.status = 'waiting'
@@ -154,22 +156,24 @@ class Tractor:
             self.point2 = (x, y)
             cv2.rectangle(frame_show, self.point1, self.point2, (0, 0, 255), thickness=2)
             cv2.imshow("image", frame_show)
-            key = cv2.waitKey(0) & 0xFF
-            if key == 13:
-                cv2.destroyAllWindows()
-            else:
-                cv2.destroyWindow("image")
             if self.point1!=self.point2:
                 min_x = min(self.point1[0], self.point2[0])
                 min_y = min(self.point1[1], self.point2[1])
                 width = abs(self.point1[0] - self.point2[0])
                 height = abs(self.point1[1] - self.point2[1])
                 self.gbRect=[min_x,min_y,width,height] # (x,y,w,h)
-                self.cut_img = frame[min_y:min_y + height, min_x:min_x + width]
-                # cv2.imshow('roi',cut_img)
-                # res = askyesno('COnfirm',f'Rect: {point1} : {self.point2} \nconfirm?')
-                # if res == 1:
-                #     cv2.destroyAllWindows()
+                cut_img = frame[min_y:min_y + height, min_x:min_x + width]
+                h_, w_, _ = cut_img.shape
+                out_h = 600
+                cv2.imshow('roi', cv2.resize(cut_img, (int(out_h/h_ * w_), out_h)))
+                """ cv.resize的第二个参数的格式是(w, h) """
+                key = cv2.waitKey(0) & 0xFF
+                if key == 13: # enter
+                    cv2.destroyAllWindows()
+                    self.cut_img = cut_img
+                else:
+                    cv2.destroyWindow("image")
+                    cv2.destroyWindow("roi")
             else:
                 cv2.destroyWindow("image")
         else:
@@ -192,7 +196,8 @@ class Tractor:
         if self.monitor_show(frame, function=self.pointColor, reset_function=self.color_reset) == 1:
             cv2.destroyAllWindows()
             return (-1,-1,-1)
-        print(self.gbColor)
+        print()
+        print('color:',self.gbColor,'format:bgr')
         return self.gbColor
     
     def color_reset(self):
@@ -221,7 +226,8 @@ class Tractor:
         y_start = min(y1, y2)
         y_end = max(y1, y2)
         self.gbRect = ((int(x_start*self.mutiple), int(y_start*self.mutiple)), (int(x_end*self.mutiple), int(y_end*self.mutiple)))
-        print(self.gbRect)
+        print()
+        print('rect:',self.gbRect,'format:((x1,y1),(x2,y2))')
         return self.gbRect[0][1],self.gbRect[1][1]-self.gbRect[0][1],self.gbRect[0][0],self.gbRect[1][0]-self.gbRect[0][0] # y, x, h, w
     
     """light magnify"""
@@ -242,6 +248,7 @@ class Tractor:
     def inputbox(self, root, show_text):
         self.gbInput = None # 防止得到错误的输入
         input_window = tk.Toplevel(root)
+        input_window.geometry("+600+300")
         self.input_window = input_window
         
         label = tk.Label(input_window, text=show_text)
@@ -318,6 +325,7 @@ class Identifier(Tractor):
     """根据标记点特征产生卷积核"""
     def generate_kernal(self, thresh=120, kind='uniform'):
         h,w,c = self.cut_img.shape
+        # cut_img = cv2.GuassianBlur(self.cut_img, (5, 5), 0)        
         gray = cv2.cvtColor(self.cut_img, cv2.COLOR_BGR2GRAY)
         if kind == 'uniform':
             pos_n = 0
@@ -380,7 +388,8 @@ class Identifier(Tractor):
         elif self.status == 'done':
             # print('done')
             cv2.destroyAllWindows()
-            print(f'{self.gbRect} format:xywh')
+            print()
+            print(f'rect: {self.gbRect} format:xywh')
             self.generate_kernal(kind='sin')
             # return g_rect, minis
             return self.gbRect, []
@@ -460,4 +469,4 @@ if pstatus == "debug":
         Idf = Identifier()
         Idf.select_window(img)
         # Trc = Tractor()
-        # Trc.tract_color(img)
+        # Trc.select_rect(img)

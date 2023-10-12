@@ -136,13 +136,17 @@ class APP:
         self.bt10.pack(side=TOP,pady=0)
         self.bt12 = Button(middleframe, text='跳帧读取',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.set_skip)
         self.bt12.pack(side=TOP,pady=0)
-        self.bt11 = Button(middleframe, text='转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_magnify)
+        self.bt11 = Button(middleframe, text='转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.go_change_unit)
         self.bt11.pack(side=TOP,pady=0)
-        self.bt9 = Button(middleframe, text='取消转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.stop_magnify)
+        self.bt9 = Button(middleframe, text='取消转换单位',pady=10, font=("等线",15,"underline"),relief=FLAT,command=self.stop_change_unit)
+        self.bt9.pack(side=TOP,pady=0)
+        
+        self.scale_textvar = StringVar(middleframe)
+        self.lb2 = Label(middleframe, textvariable=self.scale_textvar,pady=5, font=('Times New Roman',15))
+        self.lb2.pack()
         
         # process control
         # middle down frame: magnify process
-        self.bt9.pack(side=TOP,pady=0)
         middledownframe = Frame(middleframe)
         # middledownframe.pack(side=TOP,padx=10,pady=10)
         self.lb2 = Label(middledownframe,text='处理的缩放倍数：',font=("等线",15))
@@ -157,7 +161,7 @@ class APP:
         self.progressbar.pack(side=TOP,pady=20)
         self.progressbar['maximum'] = 100
         self.progressbar['value'] = 0
-        
+       
         # style = ttk.Style()
         # style.theme_use('default')
         # style.configure('active.Horizontal.TProgressbar', background='green')
@@ -251,9 +255,9 @@ class APP:
         # display control
         self.bt10 = Button(middleframe, text='展示第一帧', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.show_first_frame)
         self.bt10.grid(row=3, column=0, pady=0)
-        self.bt8 = Button(middleframe, text='转换单位', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.go_magnify)
+        self.bt8 = Button(middleframe, text='转换单位', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.go_change_unit)
         self.bt8.grid(row=4, column=0, pady=0)
-        self.bt9 = Button(middleframe, text='取消转换单位', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.stop_magnify)
+        self.bt9 = Button(middleframe, text='取消转换单位', pady=10, font=("等线", 15, "underline"), relief=FLAT, command=self.stop_change_unit)
         self.bt9.grid(row=5, column=0, pady=0)
 
         # process control
@@ -314,6 +318,9 @@ class APP:
             self.detect_mark_str = f'{self.status}-{self.timestr}'
             self.skip_num = 1
             self.step.set('light and process')
+            self.scale_textvar.set('单位：px')
+            self.data_unit = 'px'
+            self.old_ratio = 1
         else:
             self.status = None
             self.light = 0
@@ -325,6 +332,9 @@ class APP:
             self.detect_mark_str = None
             self.skip_num = 1
             self.step.set('init')
+            self.scale_textvar.set('单位：px')
+            self.data_unit = 'px'
+            self.old_ratio = 1
             
         self.output_window = None
         self.first_middle_point = (-1,-1)
@@ -367,13 +377,14 @@ class APP:
     def load_video(self):
         filepath = filedialog.askopenfilename(defaultextension='.mp4')
         if not filepath: # 打开文件失败
-            print('用户退出')
+            # print('用户退出')
             return
         if not filepath.lower().endswith(('.mp4', '.avi', '.mov', '.wmv', '.mpg', '.mpeg', '.flv', '.vob', '.3gp', '.3g2', '.asf', '.avchd', '.dv', '.matroska', '.mjpg', '.nsv', '.ogg', '.qt', '.riff', '.swf', '.videocd', '.webm')):
             showwarning('warning','请检查文件格式，不支持该格式文件')
             print('请检查文件格式，不支持该格式文件')
             return
         self.cap = cv.VideoCapture(filepath)
+        print('',filepath,sep='\n')
         # 检测视频格式
         ret = self.cap.read()[0]
         if not ret:
@@ -393,26 +404,30 @@ class APP:
         self.step.set('video loaded')
         self.master.update()
         
-    def go_magnify(self):
+    def go_change_unit(self):
         if self.cap == None:
             showinfo(message=msg_NoVideo)
             return
+        self.data_unit = 'cm'
         self.bodyLength, self.measure, self.first_middle_point = Magnify(self.cap, self.master)
-        self.Ratio_to_cm = self.bodyLength / self.measure
-        self.magRatio = View*self.bodyLength / self.measure
+        self.Ratio_to_cm = self.bodyLength / self.measure # 数据的缩放比例
+        self.magRatio = View*self.bodyLength / self.measure # 显示的缩放比例
         if self.output_window and self.output_window.display:
             self.output_window.ratio = self.magRatio
-        showinfo(message=f'{self.bodyLength}cm : {self.measure:.1f}px \n'
-                                    f'or 1 px : {self.Ratio_to_cm:.4f}cm')
-        self.Ratio_to_m = self.magRatio*0.001
+        message = f'{self.bodyLength}cm : {self.measure:.1f}px \n or 1 px : {self.Ratio_to_cm:.4f}cm'
+        showinfo(message=message)
+        print('',message,sep='\n')
+        self.scale_textvar.set('单位：cm')
         # self.show_first_frame()
         # self.master.geometry('1200x700+50+50')
         
-    def stop_magnify(self):
+    def stop_change_unit(self):
+        self.data_unit = 'px'
         self.magRatio = 0
         if self.output_window and self.output_window.display:
             self.output_window.ratio = 0
         showinfo(message='已关闭缩放')
+        self.scale_textvar.set('单位：px')
         
     def show_first_frame(self):
         if not self.cap:
@@ -420,10 +435,9 @@ class APP:
             return
         self.cap.set(1, 0) # 重置为第一帧
         ret, frame0 = self.cap.read()
-        print('ratio:',self.magRatio)
-        # cv.imwrite(f'src/{self.filename}.png', frame0)
-        cv.imwrite(f'src/filename.png', frame0)
-        my_show(frame0,self.magRatio)
+        # print('ratio:',self.magRatio)
+        cv.imwrite(f'.\\first_frame.png', frame0)
+        my_show(frame0)
         
     def set_process_multiple(self):
         self.pm = eval(self.e1.get())
@@ -481,6 +495,7 @@ class APP:
         _rtn2 = main_color(self.cap,'back',self.master,
                    self.output_window,self.progressbar,self.pm,self.skip_num)
         
+        cv.destroyAllWindows()
         self.hide_progressbar()
         if _rtn1 != 'ok' or _rtn2 != 'ok':
             return
@@ -505,7 +520,6 @@ class APP:
         if self.output_window and self.output_window.display:
             if _rtn1 == 'stop':
                 self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
-                cv.destroyAllWindows()
             else:
                 self.output_window.textboxprocess.insert('0.0','前点提取过程结束（展示过程不保存数据）\n')
         self.refresh()
@@ -516,6 +530,8 @@ class APP:
                 self.output_window.textboxprocess.insert('0.0','提取过程中止\n')
             else:
                 self.output_window.textboxprocess.insert('0.0','后点提取过程结束（展示过程不保存数据）\n')
+
+        cv.destroyAllWindows()
         self.hide_progressbar()
         if _rtn1 != 'OK' or _rtn2 != 'OK':
             return
@@ -536,9 +552,20 @@ class APP:
             return
         self.show_progressbar()
         showinfo(message='请导入背景图')
-        filename = filedialog.askopenfilename(defaultextension='.jpg')
-        self.backgroundImg = cv.imread(filename)
+        filepath = filedialog.askopenfilename(defaultextension='.jpg')
+        if not self.is_image_path(filepath):
+            showwarning('warning','未能识别的图片格式')
+            print('未能识别的图片格式')
+            return
+        # try:
+        #     self.backgroundImg = cv.imread(filename)
+        # except:
+        #     showerror('未能识别的图片格式')
+        #     return
+        self.backgroundImg = cv.imread(filepath)
         _rtn = contour(self.cap,self.backgroundImg,self.master,self.output_window,self.progressbar,self.skip_num,use_contour=True)
+        
+        cv2.destroyAllWindows()
         self.hide_progressbar()
         if _rtn != 'OK':
             return
@@ -560,6 +587,8 @@ class APP:
         self.show_progressbar()
         '''camshift被包装在contour_camshift中'''
         _rtn = contour(self.cap,None,self.master,self.output_window,self.progressbar,self.skip_num)
+        
+        cv.destroyAllWindows()
         self.hide_progressbar()
         if _rtn != 'OK':
             return
@@ -583,8 +612,9 @@ class APP:
         _rtn1 = feature(self.cap,kind='front',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master, skip_n=self.skip_num)
         showinfo(message='追踪后点')
         _rtn2 = feature(self.cap,kind='back',OutWindow=self.output_window,progressBar=self.progressbar, root=self.master,skip_n=self.skip_num)
-        self.hide_progressbar()
         
+        cv.destroyAllWindows()
+        self.hide_progressbar()
         if _rtn1 != 'OK' or _rtn2 != 'OK':
             return
         if self.output_window and self.output_window.display:
@@ -614,9 +644,9 @@ class APP:
             if rtn_ == 'stop':
                 showinfo(message='提取过程中止，展示模式不记录数据')
                 self.output_window.textboxprocess.insert('0.0',"提取过程中止，展示模式不记录数据\n")
-            else: # rtn_ == 'error'
+            else: # rtn_ == 'quit'
                 pass
-            cv.destroyAllWindows()
+        cv.destroyAllWindows()
         self.hide_progressbar()
         self.refresh()
         
@@ -660,9 +690,24 @@ class APP:
             showinfo(message='请先处理视频')
             return
 
-        if self.magRatio > 0:
+        if self.data_unit == 'cm':
             data_dealer.data_change_ratio(self.Ratio_to_cm)
             data_dealer.To_centimeter(self.Ratio_to_cm)
+
+        # 会重新parse
+        '''if self.data_unit == 'cm':
+            data_dealer.data_change_ratio(self.Ratio_to_cm / self.old_ratio)
+            data_dealer.To_centimeter(self.Ratio_to_cm)
+            self.old_ratio = self.Ratio_to_cm
+        else:
+            if self.Ratio_to_cm > 0:
+                data_dealer.data_change_ratio(1 / self.old_ratio)
+                data_dealer.To_origin()
+                self.Ratio_to_cm = 0
+            else:
+                pass
+            self.old_ratio = 1'''
+            
         dirs = ["results", # output_txt_directory
                 "fig"] # output_png_directory
         for directory_name in dirs:
@@ -674,7 +719,23 @@ class APP:
         tier1 = Tk()
         result_window = ResWindow(tier1,data_dealer)
         tier1.mainloop()
-        
+       
+    def is_image_path(self, path):
+        try:
+            img = cv2.imread(path)
+            if img is not None:
+                return True
+            else:
+                return False
+        except cv2.error:
+            return False
+        except FileNotFoundError:
+            print("找不到该文件")
+            return False
+        except Exception as e:
+            print(f"Error: {e}")
+            return False
+    
     def set_skip(self):
         self.dialog = tk.Toplevel(self.master)
         self.dialog.geometry("+600+300")
@@ -691,16 +752,20 @@ class APP:
         try:
             self.skip_num = int(input_text)
         except:
-            showinfo(message='请输入整数')
+            showinfo(message='请输入正整数')
         else:
-            showinfo(message='成功设置跳帧读取')
+            if self.skip_num <= 0:
+                showinfo(message='请输入正整数')
+                self.skip_num = 1
+            else:
+                showinfo(message='成功设置跳帧读取')
         finally:
             self.dialog.destroy()
 
     def show_result(self):
         showinfo(message='共提取到 %d帧信息，%d帧有效信息，%d次有效刺激' % 
         (min(self.dealer.num1,self.dealer.num2), self.dealer.num, len(self.dealer.stimulus)))
-
+        print(f'\n有效信息:{self.dealer.num}\t 有效刺激:{len(self.dealer.stimulus)}\t 跳帧数:{self.skip_num}')
     
 class ResWindow:
     def __init__(self,master,dealer) -> None:
@@ -710,9 +775,9 @@ class ResWindow:
         master.title('结果查看页面')
         master.geometry('420x375+600+400')
         
-        button1 = Button(master, text='轨迹和转向半径', width=20, font=('GB2312', 18), background='Tan', command=self.show_path)
+        button1 = Button(master, text='轨迹', width=20, font=('GB2312', 18), background='Tan', command=self.show_path)
         button1.grid(row=0, column=0, sticky=W)
-        button01 = Button(master, text='转向半径', width=20, font=('GB2312', 18), background='Tan', command=self.show_curve)
+        button01 = Button(master, text='曲率', width=20, font=('GB2312', 18), background='Tan', command=self.show_curve)
         button01.grid(row=1, column=0, sticky=W)
         button2 = Button(master, text='角度', width=20, font=('GB2312', 18), background='Tan', command=self.show_angle)
         button2.grid(row=2, column=0, sticky=W)

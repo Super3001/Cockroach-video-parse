@@ -11,6 +11,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 4. 使用轮廓识别不能输出摆动角速度
 5. 输出文件的坐标记录:(x, y)
 6. kernel可以不是方形的
+7. domain: (上下左右)
 
 
 9.9
@@ -26,7 +27,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 | meanshift   | 快   | 较高 | yes | ok | 
 | color       | 较快 | 较高 | yes | ok |
 | camshift    | 快   | 较高 | no  | ok |
-| contour     | 较慢 | 一般 | no  | ok |
+| contour     | 慢   | 一般 | no  | ok |
 | contourCNN  | 较快 | 较高 | no  | ok |
 | feature     | 较慢 | 高   | yes | 困难 |
 
@@ -46,6 +47,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 | radius      | ok | ok | ok |
 | angle       | ok | ok | -  |
 | omega       | ok | ok | -  |
+| dist | ok | ok | ok |
 
 
 ## 代码特征：
@@ -89,7 +91,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 - [x] sequence of plots
 
-- [ ] tract point show output to out_window
+- [x] tract point show output to out_window
 
 - [x] add cut_edge when tracting points
 
@@ -137,7 +139,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
   (xlabel, ylabel, figname, title)
 
-- [ ] some problems about display_window
+- [x] some problems about display_window
 
 - put dispWindow to the top when detecting（/）
 
@@ -201,6 +203,18 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 
 9.9
 - [ ] tractor双击放大
-- [ ] 角度趋势相对应
+- [x] 角度趋势相对应
 - [ ] 打包成exe无法显示matplotlib组件的问题
+
+10.8
+
+poyfit和pca:
+
+给定**椭圆**周上取点
+| angle(deg) | pca result | polyfit result |
+| :---: | :--------: | :------------: |
+| 9     | 9          | 7.11           |
+| 30    | 30         | 23.14          |
+| 60    | 60         | 40.16          |
+| 90    | 90     | 0              |
 

@@ -23,9 +23,9 @@ def tractLight(cap, master, OutWindow, progressBar, thres=150, show_time=1000//3
     Trc = Tractor()
     _rtn = Trc.tractPoint(cv.resize(frame0,(1200,800)),"click the light position, press enter to confirm, q to quit, space to redo")
     x,y = Trc.gbPoint
-    print(x, y)
+
     if _rtn == 'quit' or x == -1 or y == -1:
-        return 'stop'
+        return 'quit'
     
     domain = [y-3,y+3,x-3,x+3] # 上，下，左，右
     file = open('out-light-every.txt','w')

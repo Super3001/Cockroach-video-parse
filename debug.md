@@ -4,6 +4,18 @@
 
 滑动窗口普遍存在抖动的问题
 
+特征标记点 250-350f
+
+## 说明书的补充内容：
+
+1. curvature的逐帧记录未出现的帧与前一帧的曲率相同（用的是过三点的圆的方法）
+
+2. 转换单位/取消转换单位生效需要重新点击“查看结果”
+
+3. 转换单位也可以依据标尺来做
+
+4. (1)轮廓检测尽量用于浅色纯色背景，可以提前拍摄背景图，背景固定不动，(2)目标物有较为明显的（两侧对称的）长轴 **或** (?)
+
 ## debug记录
 
 ![image-20230831100922669](D:\GitHub\Cockroach-video-parse\src\md_img\image-20230831100922669.png)
@@ -49,3 +61,17 @@
 10.1.2023
 
 1.一般识别（前后点）改回meanshift
+
+10.8.2023
+
+1. "刺激" 改为 "控制信号"
+
+![image-20231008165744480](C:\Users\LENOVO\AppData\Roaming\Typora\typora-user-images\image-20231008165744480.png)
+
+![image-20231008180433238](C:\Users\LENOVO\AppData\Roaming\Typora\typora-user-images\image-20231008180433238.png)
+
+10.9.2023
+
+OutputWindow的滚动条问题
+
+展示输出到控制台？打开控制台progressbar？

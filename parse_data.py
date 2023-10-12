@@ -17,7 +17,7 @@ TBD = -10
 def f2sec(n,fps): # 将帧数转化为秒
     return n / fps
 
-from scipy.signal import butter, filtfilt
+'''from scipy.signal import butter, filtfilt
 
 def butter_bandpass(lowcut, highcut, fs, order=4):
     nyq = 0.5 * fs
@@ -29,7 +29,7 @@ def butter_bandpass(lowcut, highcut, fs, order=4):
 def butter_bandpass_filter(data, lowcut, highcut, fs, order=4):
     b, a = butter_bandpass(lowcut, highcut, fs, order=order)
     y = filtfilt(b, a, data)
-    return y
+    return y'''
 
 """
 # 示例用法
@@ -63,7 +63,7 @@ class DataParser:
         self.stimulus = [] # all the judged stimulate frame number
         self.durings = [] # list of index(data indices) that in each stimulate section
 
-        self.filekind = ''
+        self.datakind = ''
         self.timestr = ''
         self.fps = fps
         self.skip_n = skip_n
@@ -71,16 +71,15 @@ class DataParser:
     """ change all scaler of data """
     def data_change_ratio(self, ratio):
         assert ratio > 0, "Wrong Value"
-        if self.filekind == 'fb':
+        if self.datakind == 'fb':
             self.X1 = [x*ratio for x in self.X1]
             self.X2 = [x*ratio for x in self.X2]
             self.Y1 = [y*ratio for y in self.Y1]
             self.Y2 = [y*ratio for y in self.Y2]
             self.D = [d*ratio for d in self.D]
 
-        for i in range(self.num):
-            self.X_mid[i] = self.X_mid[i]*ratio
-            self.Y_mid[i] = self.Y_mid[i]*ratio
+        self.X_mid *= ratio
+        self.Y_mid *= ratio
 
         # self.K = [] # self.K 不需要修改
         # self.Theta = [] # self.Theta 不需要修改
@@ -120,7 +119,7 @@ class DataParser:
         self.stimulus = stimulus
 
     def parse_fbpoints(self,file_f,file_b, fps):
-        self.filekind = 'fb'
+        self.datakind = 'fb'
         self.timestr = utils.timestr()
 
         # 声明所有可用的数据
@@ -210,7 +209,7 @@ class DataParser:
             self.durings = self.sti_segment()
         
     def parse_feature_result(self, file_f,file_b, fps):
-        self.filekind = ['f','b']
+        self.datakind = 'fb'
         self.parse_time = utils.timestr()
         self.__available__ = ['X1','Y1','X2','Y2','X_mid','Y_mid','K','D','Theta','frames','assist_angle_f','assist_angle_b','frames_adj','frame_interval','durings'] # 所有可供使用的数据
 
@@ -230,7 +229,7 @@ class DataParser:
             elif 'black' in items[1] or 'relocate' in items[1]:
                 continue
             else:
-                y, x = items[1].split(',')
+                y, x = items[1].replace(',',''), items[2]
                 x = float(x)
                 y = -float(y)
                 self.X1[frame] = x
@@ -249,7 +248,7 @@ class DataParser:
             elif 'black' in items[1] or 'relocate' in items[1]:
                 continue
             else:
-                y, x = items[1].split(',')
+                y, x = items[1].replace(',',''), items[2]
                 x = float(x)
                 y = -float(y)
                 self.X2[frame] = x
@@ -262,7 +261,7 @@ class DataParser:
 
         self.num1 = len(self.X1)
         self.num2 = len(self.X2)
-
+        
         '''以下都使用np.array格式'''
         self.frames = []
         self.zerot = TBD # 无效帧的数量
@@ -279,7 +278,7 @@ class DataParser:
         self.nframe = np.max(self.frames)
         self.num = self.frames.size
         self.zerot = min(self.num1, self.num2) - self.num
-        print('num:', self.num, 'nframe:', self.nframe, 'zerot:', self.zerot)
+        # print('num:', self.num, 'nframe:', self.nframe, 'zerot:', self.zerot)
         
         # 提取中心点
         self.X_mid = []
@@ -360,7 +359,7 @@ class DataParser:
         self.Theta = thetas
 
     def parse_center_angle(self, file_center,file_angle,fps):
-        self.filekind = 'ca'
+        self.datakind = 'ca'
         self.timestr = utils.timestr()
         self.__available__ = ['X_mid','Y_mid','Theta','frames']
 
@@ -379,6 +378,9 @@ class DataParser:
         self.Y_mid = []
         for i in data1:
             frame, x, y = i.split()
+            """统一以', '分割和' '分割的两种情况"""
+            if x.endswith(','):
+                x = x[:-1]
             x=float(x)
             y=-float(y)
             frame = int(frame)
@@ -425,11 +427,11 @@ class DataParser:
 # %%
 if pstatus == "debug":
     if __name__ == '__main__':
-        parser = DataParser()
+        parser = DataParser(light=False)
         parser.parse_light(open('out-light-every.txt','r'), 30)
         parser.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         
-        import matplotlib.pyplot as plt
+        '''import matplotlib.pyplot as plt
         fig = plt.figure(figsize=(15, 14))
         plt.subplot(2, 1, 1)
         plt.plot(parser.frames, parser.Theta)
@@ -442,8 +444,8 @@ if pstatus == "debug":
         lowcut = 0.01 # 低频截止频率
         highcut = 3 # 高频截止频率
         order = 4 # 滤波器阶数
-        # 应用滤波器
-        y = np.zeros(parser.nframe)
+        # 应用滤波器'''
+        '''y = np.zeros(parser.nframe)
         y[parser.frames-1] = parser.Theta
         filtered_data = butter_bandpass_filter(y, lowcut, highcut, fs, order=order)
         
@@ -454,5 +456,5 @@ if pstatus == "debug":
         plt.title('filtered')
         
         plt.show()
+        '''
         print('finish')
-

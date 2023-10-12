@@ -70,8 +70,8 @@ def remove_abnormal(points:np.array):
     return points
             
 class Dealer(DataParser):
-    def __init__(self,fps=60,filename=None,root=None,progressBar=None,markstr=None,skip_n=1,plot_tool='plt') -> None:
-        super().__init__(fps=fps,skip_n=skip_n)
+    def __init__(self,fps=60,filename=None,root=None,progressBar=None,markstr=None,skip_n=1,plot_tool='plt', light=True) -> None:
+        super().__init__(fps=fps,skip_n=skip_n, light=light)
         self.root = root
         self.progressBar = progressBar
 
@@ -80,12 +80,16 @@ class Dealer(DataParser):
         self.out_ratio = 0
         self.str_scale = 'px'
         self.plot_tool = plot_tool
+        self.stimulateLabelFlag = False
 
     def save_midpoint_data(self):
         with open(f'results\Pos {self.filename},{self.timestr}.txt','w') as f:
-            f.write('frame# \tX_mid \tY_mid\n')
+            f.write(f'frame# \tX_mid({self.str_scale}) \tY_mid({self.str_scale})\n')
             for i, frame in enumerate(self.frames):
-                f.write(f'{frame:<3d} \t{self.X_mid[i]} \t{self.Y_mid[i]}\n')
+                if self.str_scale == 'cm':
+                    f.write(f'{frame:<3d} \t{self.X_mid[i]:.3f} \t\t{self.Y_mid[i]:.3f}\n')
+                else:  
+                    f.write(f'{frame:<3d} \t{self.X_mid[i]} \t\t{self.Y_mid[i]}\n')
             f.write('end\n')
         
     def To_centimeter(self, ratio):
@@ -122,14 +126,22 @@ class Dealer(DataParser):
     
     """origin line segment in one plot"""
     def segment(self,down,up):
+        stimulate_label_flag = False
         for i in self.stimulus:
             x,y = [i-0.5*self.fps,i-0.5*self.fps],[down,up]
-            plt.plot(x,y,color="red")
+            if not stimulate_label_flag:
+                plt.plot(x,y,color="red",label='stimulate start')
+            else:
+                plt.plot(x,y,color="red")
             x,y = [i+self.after*self.fps,i+self.after*self.fps],[down,up]
-            plt.plot(x,y,color="navy")
+            if not stimulate_label_flag:
+                plt.plot(x,y,color="navy",label='stimulate end')
+                stimulate_label_flag = True
+            else:
+                plt.plot(x,y,color="navy")
     
     """@depricated: segment and plot in one function"""        
-    def segment_plt(self,data:list,xlabel,ylabel,name,colors=('b','y')):
+    """def segment_plt(self,data:list,xlabel,ylabel,name,colors=('b','y')):
         plt.figure()
         num_stimulate = len(self.stimulus)
         for i, stimulus in enumerate(self.stimulus):
@@ -150,7 +162,7 @@ class Dealer(DataParser):
             plt.xlim(left - 5, right + 5)
             plt.ylabel(ylabel)
             
-        plt.show()
+        plt.show()"""
     
     """@depricated: segment by frames if it is in a section of stimulus, return list"""   
     def frame_segment_1(self):
@@ -173,7 +185,7 @@ class Dealer(DataParser):
     
     def horizontal(self,left,right,value=0):
         x,y = [left, right],[value,value]
-        plt.plot(x,y,color='black')
+        plt.plot(x,y,color='y')
     
     """@depricated another form of frame_segment"""
     def frame_segment_2(self):
@@ -195,7 +207,7 @@ class Dealer(DataParser):
         return frame_sections
             
     def showAngle(self):
-            
+        self.stimulateLabelFlag = False
         """write file and plot simultaneously"""
         with open(f'results\Angle {self.filename},{self.timestr}.txt','w') as f:
             # plt.figure()
@@ -218,7 +230,11 @@ class Dealer(DataParser):
                         # if x in self.stimulus:
                         if j == sti_i:
                             f.write(f'{x:<3d}\t {theta:.6f} (stimulate)\n')
-                            plt.scatter(x,theta,c='r')
+                            if not self.stimulateLabelFlag:
+                                plt.scatter(x,theta,c='r',label='stimulate')
+                                self.stimulateLabelFlag = True
+                            else:
+                                plt.scatter(x,theta,c='r')
                         else:
                             f.write(f'{x:<3d}\t {theta:.6f}\n')
                         plt_x.append(x)
@@ -227,11 +243,11 @@ class Dealer(DataParser):
                     plt_assist_f = self.assist_angle_f[sti_ls] if hasattr(self,'assist_angle_f') else None
                     plt_assist_b = self.assist_angle_b[sti_ls] if hasattr(self,'assist_angle_b') else None
                     
-                    plt.plot(plt_x, plt_y, c='b')
+                    plt.plot(plt_x, plt_y, c='b', label='angle')
                     if plt_assist_f is not None:
-                        plt.plot(plt_x, plt_assist_f, c=(0,0.9,0)) # c: (r,g,b)
+                        plt.plot(plt_x, plt_assist_f, c=(0,0.9,0),label='assist-angle(front)') # c: (r,g,b)
                     if plt_assist_b is not None:
-                        plt.plot(plt_x, plt_assist_b, c=(0.9,0,0.9))
+                        plt.plot(plt_x, plt_assist_b, c=(0.9,0,0.9),label='assist-angle(back)')
                     
                     plt.xlabel('x')
                     plt.ylabel('y')
@@ -239,6 +255,7 @@ class Dealer(DataParser):
                     plt.xlabel('number of frame')
                     plt.ylabel('angle(deg)') # 单位：角度
                     plt.title(f'angle curve {i+1}')
+                    plt.legend()
                     plt.savefig(f'fig\pAngle-stimulus{i+1}.png')
                     plt.show()
                         
@@ -268,10 +285,11 @@ class Dealer(DataParser):
         self.interp_x = x_base
         
         """to be changed"""
-        self.segment(np.min(y_curve[10:])-10,np.max(y_curve[10:])+10)
+        if self.has_light: self.segment(np.min(y_curve[10:])-10,np.max(y_curve[10:])+10)
         plt.xlabel('number of frame')
         plt.ylabel('angle(deg)')
         plt.title('interpolate angle curve')
+        if self.has_light: plt.legend()
         plt.savefig('fig\pAngle_interp.png')
         plt.show()
         
@@ -440,8 +458,8 @@ class Dealer(DataParser):
         plt.xlabel('number of frame')
         plt.ylabel('angular speed(deg/s)')
         plt.title('turning omega curve')
-        self.horizontal(-1,self.nframe+1)
-        plt.legend()
+        self.nframe = max(self.frames)
+        self.horizontal(-2,self.nframe+2)
         plt.savefig('fig\pOmega.png')
         plt.show()
             
@@ -470,8 +488,12 @@ class Dealer(DataParser):
             """ 距离刺激帧最近的一帧 """
             idx = np.argmin(np.abs(self.frames - f))
 
-            # ·刺激置于最上层·
-            plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=tuple(cbar[i]),zorder=100)
+            # ·刺激置于最上层,zorder=100·
+            if not self.stimulateLabelFlag:
+                plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=tuple(cbar[i]),zorder=100, label='stimulate')
+                self.stimulateLabelFlag = True
+            else:
+                plt.scatter(self.X_mid[idx], self.Y_mid[idx],color=tuple(cbar[i]),zorder=100)
             if flag:
                 plt.scatter(self.X1[idx], self.Y1[idx], color=tuple(cbar[i]),zorder=100)
                 plt.scatter(self.X2[idx], self.Y2[idx], color=tuple(cbar[i]),zorder=100)
@@ -511,7 +533,12 @@ class Dealer(DataParser):
                 if len(indice) == 0:
                     continue
                 xmid = self.X_mid[indice]; ymid = self.Y_mid[indice]; plt.plot(xmid, ymid, c='b', label='mid')
-                if flag: x1 = self.X1[indice]; y1 = self.Y1[indice]; x2 = self.X2[indice]; y2 = self.Y2[indice]; plt.plot(x1,y1,c='green',label='front'); plt.plot(x2,y2,c='purple',label='back')
+                if flag: 
+                    x1 = self.X1[indice]; 
+                    y1 = self.Y1[indice]; 
+                    x2 = self.X2[indice]; 
+                    y2 = self.Y2[indice]
+                    plt.plot(x1,y1,c='green',label='front'); plt.plot(x2,y2,c='purple',label='back')
                 
                 idx = np.argmin(np.abs(self.frames - self.stimulus[i])) # 标记刺激帧的下标
                 # print(indice)
@@ -553,6 +580,8 @@ class Dealer(DataParser):
         plt.show()
     
     def gen_curve_points(self):
+        """this function is to select unique points of path
+        """
         curve_point = []
         cp_indexes = []
         for i in range(self.num):
@@ -568,9 +597,8 @@ class Dealer(DataParser):
 
     def showCurve(self):
         if self.has_light == 0:
-            showwarning('','未设置无控制信号时的转向半径计算')
-            return
-        with open(f'results\Turning Radius {self.filename},{self.timestr}.txt','w') as f:
+            return self.show_curve_all()
+        with open(f'results\Curvature {self.filename},{self.timestr}.txt','w') as f:
 
             _type = 'mean'
             route_length = 0
@@ -604,8 +632,7 @@ class Dealer(DataParser):
                 curvs.append(mean_curv)
                 
             f.write('mean curvature of all stimulus:\n')
-            # f.write(f'unit: {self.str_scale}\n')
-            f.write(f'stimulus#\t curvature({self.str_scale})\n')
+            f.write(f'stimulus#\t curvature({self.str_scale}^-1)\n')
             for i in range(len(curvs)):
                 f.write(f'{i+1:<3d}\t\t {curvs[i]:.4f}\n')
             f.write('end\n')
@@ -616,7 +643,7 @@ class Dealer(DataParser):
             for i in range(len(curvs)):
                 plt.text(i, curvs[i], str(round(curvs[i],2)), ha='center', va='bottom')
             plt.xlabel('number of stimulus')
-            plt.ylabel(f'curvature({self.str_scale})')
+            plt.ylabel(f'curvature({self.str_scale})^-1')
             plt.xlim(-1, len(curvs))
             plt.title(f'turning curvature')
             plt.savefig(f'fig\pCurve-sti.png')
@@ -671,6 +698,31 @@ class Dealer(DataParser):
                 #     f.write(f'{self.frames[i]:3d}: ----- black -----\n')
                 f.write(f'{self.frames[i]:<3d}\t\t {self.curvature[i]:.4f}\n')
             f.write('end\n')
+
+    def show_curve_all(self):
+        
+        """calc curvature"""
+        _type = 'arc'
+        self.curvature = np.zeros(self.num)
+        max_curv = 0
+        self.gen_curve_points()
+
+        for i in range(1, len(self.curve_point)-1):
+            r = self.radius_arc_of_points(*(self.curve_point[i-1:i+2]))
+            if r == np.inf or r == 0:
+                curv = 0
+            else:
+                curv = 1 / r
+            if curv > max_curv:
+                max_curv = curv
+            self.curvature[self.cp_indexes[i]] = curv
+        
+        with open(f'results\Curvature {self.filename},{self.timestr}.txt','w') as f:
+            f.write(f'stimulus#\t curvature({self.str_scale})\n')
+            for i in range(self.num):
+                f.write(f'{self.frames[i]:<3d}\t\t {self.curvature[i]:.4f}\n')
+            f.write('end\n')
+        showinfo('','数据已保存，未设置图像')
 
     def radius_arc_of_points(self, A, B, C):
         x1, y1 = A
@@ -759,7 +811,7 @@ class Dealer(DataParser):
                 
         # print(self.durings)
         """write file and plot simultaneously"""
-        with open(f'results\Turning Radius {self.filename},{self.timestr}.txt','w') as f:
+        with open(f'results\Curvature {self.filename},{self.timestr}.txt','w') as f:
             f.write(f'frame_num: radius({self.str_scale})')        
             for i, sti_ls in enumerate(self.durings):
                 plt.figure(f'pRadius-{i}')
@@ -793,7 +845,7 @@ class Dealer(DataParser):
                 plt.plot(plt_x,plt_y,c='b')
                 plt.xlabel('number of frame')
                 plt.ylabel(f'radius({self.str_scale})')
-                plt.title('turning radius')
+                plt.title('Curvature')
                 plt.savefig(f'fig\pRadius-stimulus{i+1}.png')
                 plt.show()
                     
@@ -833,13 +885,13 @@ class Dealer(DataParser):
 
 if pstatus == "debug":
     if __name__ == '__main__':
-        data_dealer = Dealer(30, skip_n=10)
+        data_dealer = Dealer(30)
         data_dealer.parse_light(open('out-light-every.txt','r'), 30)
-        data_dealer.parse_fbpoints(open('out-color-1.txt','r'),open('out-color-2.txt','r'),30)
+        # data_dealer.parse_fbpoints(open('out-color-1.txt','r'),open('out-color-2.txt','r'),30)
+        data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
+        # data_dealer.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         # data_dealer.data_change_ratio(0.012)
         # data_dealer.To_centimeter(0.012)
-        # data_dealer.parse_center_angle(open('out-camshift-center.txt','r'),open('out-camshift-theta.txt','r'),60)
-        # data_dealer.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         # data_dealer.showPath()
         # data_dealer.save_midpoint_data()
         # data_dealer.showCurve()

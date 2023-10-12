@@ -21,6 +21,7 @@ class Stdout_progressbar:
         self.max_num = max_num
         self.time = 0
         self.show = show
+        self.skip_n = 1
 
     def reset(self, skip_n=1):
         self.time = time.perf_counter()
@@ -44,7 +45,7 @@ class Stdout_progressbar:
         percentage = round(now_num / self.max_num * 100)
         print("\r", end="")
         print("Process: {}%: |".format(percentage), "-" * (i), end="")
-        print(" "*(self.length - i),"|",f"use {elapse:.1f}s", end="")
+        print(" "*(self.length - i),"|",f"use {elapse:.1f}s   ", end="")
         sys.stdout.flush()
 
         if now_num == -1: # 代表结束
@@ -53,8 +54,8 @@ class Stdout_progressbar:
             #     print("\r", end="")
             #     print(f"Progress: {percentage}%: |", "-" * self.length, "|", end="")
 
-            print("\nprecess finished!")
-            print(f"totaly use {elapse:.1f}s")
+            print("\nprocess finished!")
+            print(f"totally use {elapse:.1f}s")
             sys.stdout.flush()
 
 def legal(x,y,width,height):

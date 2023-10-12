@@ -8,6 +8,10 @@
 
 To pack an exe: pyinstaller -F [-n *filename*] main.py
 
+more:
+
+pyinstaller -F --exclude-module torch main.py
+
 ![interface02](.\src\img\interface02.jpg)
 
 界面功能介绍：
@@ -75,14 +79,13 @@ python main.py
 
 ### 3 how to process(methods)
 
-| method      | 速度 | 精度 | 识别标志点 | 重新定位 |
+| 方法      | 速度 | 精度 | 识别标志点 | 重新定位 |
 | :--:        | :--: | :--: | :--:     | :--:    |
-| meanshift   | 快   | 较高 | yes | ok | 
-| color       | 较快 | 较高 | yes | ok |
-| camshift    | 快   | 较高 | no  | ok |
-| contour     | 较慢 | 一般 | no  | ok |
-| contourCNN  | 较快 | 较高 | no  | ok |
-| feature     | 较慢 | 高   | yes | 困难 |
+| 一般识别（前后点） | 快   | 较高 | yes | ok |
+| 颜色识别     | 较快 | 较高 | yes | ok |
+| 一般识别（整体） | 快   | 较高 | no  | ok |
+| 边缘检测识别 | 慢 | 一般 | no  | ok |
+|   标记点特征识别   | 较慢 |  高  |    yes     |   困难   |
 
 各种处理方法实现方式及应用场景：
 

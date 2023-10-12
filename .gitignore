@@ -7,3 +7,5 @@ _*.py
 *.iml
 *.mp4
 .vscode
+build
+dist

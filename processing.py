@@ -3,9 +3,10 @@ from tkinter.messagebox import showinfo, showerror, showwarning
 from tract_point import *
 import numpy as np
 import math
-from alive_progress import alive_bar
+# from alive_progress import alive_bar
 from utils import dcut
-from sklearn.cluster import KMeans
+from kmeans import k_means
+import matplotlib.pyplot as plt
 
 """debug global property"""
 from control import pstatus
@@ -16,7 +17,7 @@ from utils import Stdout_progressbar
 
 SHOW_TIME = 100 # 默认的展示间隔时间，默认为0.1s，单位：ms
 MAX_VALUE_THRESH = 1000
-OUTER_BORDER = 200
+OUTER_BORDER = 50
 
 class BGRimg:
     '''
@@ -55,14 +56,14 @@ def my_show(frame, ratio=1, _time=0):
     return 0
 
 """"""
-def restrict_to_boundary(domain, h, w):
+def restrict_to_boundary(domain, h, w, start_y=0, start_x=0):
     """
         domain: `y,y,x,x`
     """
     return (
-        max(domain[0], 0),
+        max(domain[0], start_y),
         min(domain[1], h - 1),
-        max(domain[2], 0),
+        max(domain[2], start_x),
         min(domain[3], w - 1)
     )
 
@@ -74,7 +75,8 @@ def in_boundary(point, h, w):
 
 def printb(s, OutWindow, p=False): # 打印到output board上
     s = str(s)
-    OutWindow.textboxprocess.insert("0.0",s+'\n')
+    if OutWindow is not None:
+        OutWindow.textboxprocess.insert("0.0",s+'\n')
     if p:
         print(s)
 
@@ -196,15 +198,18 @@ def color_deal(frame,midval:tuple,dis:int,pre_state,thresh_dist,OutWindow=None):
     # 如果前一帧为black，需要重写找点
     if pre_state == -1: # 第一帧或者前一帧为black
         '''用kmeans算法进行聚类，选择包含点最多的类的中心位置作为center'''
-        kmeans = KMeans(n_clusters=3, n_init='auto') # 聚类的数量为3
-        kmeans.fit(points)
+        # kmeans = KMeans(n_clusters=3, n_init='auto') # 聚类的数量为3
+        # kmeans.fit(points)
+        clusters, center_positions = k_means(points, 3, 0.1, 10)
+        
+        center_positions = np.array(center_positions)
 
         # 获取每个点所属的类别
-        labels = kmeans.labels_
+        # labels = kmeans.labels_
 
         # 可视化聚类结果
         # img_show = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
-        img_show = frame.copy()
+        '''img_show = frame.copy()
         for i, each in enumerate(points):
             if labels[i] == 0:
                 cv2.circle(img_show, (each[1], each[0]), 2, (0, 0, 255), -1)
@@ -214,12 +219,12 @@ def color_deal(frame,midval:tuple,dis:int,pre_state,thresh_dist,OutWindow=None):
                 cv2.circle(img_show, (each[1], each[0]), 2, (255, 0, 0), -1)
         
         for center in kmeans.cluster_centers_:
-            cv2.circle(img_show, (int(center[1]), int(center[0])), 2, (255, 255, 255), -1)
+            cv2.circle(img_show, (int(center[1]), int(center[0])), 2, (255, 255, 255), -1)'''
         # cv2.imshow("img_show",img_show)
         # cv2.waitKey(0)
 
         # 如果中心点的距离小于阈值，则认为是同一个点
-        center_positions = kmeans.cluster_centers_
+        # center_positions = kmeans.cluster_centers_
 
         # 计算每个中心点到其他中心点的距离
         distances = np.linalg.norm(center_positions - center_positions[:, np.newaxis], axis=2)
@@ -272,11 +277,14 @@ def color_deal(frame,midval:tuple,dis:int,pre_state,thresh_dist,OutWindow=None):
         
         print('cluster scc',scc)
 
-        '''# 根据强连通分量合并中心点
-        # for each in scc:
-            # center_positions[each] = center_positions[each].mean(axis=0)'''
+        # 计算每个scc包含点的个数
+        numbers = np.array([len(x) for x in clusters.values()])
+        
+        scc_numbers = [numbers[each].sum() for each in scc]
+        
+        print('scc_numbers', scc_numbers)
 
-        # 根据强连通分量合并聚类
+        '''# 根据强连通分量合并聚类
         for each in scc:
             center_positions[each] = center_positions[each].mean(axis=0)
         
@@ -287,15 +295,14 @@ def color_deal(frame,midval:tuple,dis:int,pre_state,thresh_dist,OutWindow=None):
 
         # 统计每个类别中的点的数量
         unique_labels, counts = np.unique(labels, return_counts=True)
-        print('label and counts',unique_labels, counts)
+        print('label and counts',unique_labels, counts)'''
 
         # 找到包含点最多的类的类别号
-        max_count_index = unique_labels[np.argmax(counts)]
+        max_count_cls = np.argmax(scc_numbers)
 
-        # 获取包含点最多的类的中心位置
-        center_point = center_positions[max_count_index].astype(int)[::-1]
-
-        # 可视化center_point
+        # 获取包含点最多的类的所有中心的平均位置
+        center_point = center_positions[scc[max_count_cls]].mean(axis=0)
+        center_point = center_point.astype(int)[::-1]
 
     else:
         '''到前置点的距离小于阈值的点的中心位置作为center'''
@@ -400,60 +407,63 @@ def main_color(cap,kind,root,OutWindow,progressBar,pm=1,skip_n=1):  # 颜色提�
     domain = (0,frame0.shape[0],0,frame0.shape[1]) # 上下左右
     domain = [int(x*pm) for x in domain]
     success = 1
+    
+    stdoutpb = Stdout_progressbar(num)
     cnt = 0
     pre_state = -1 # 初始设为前一帧为black
     progressBar['maximum'] = num
     
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
-    with alive_bar(math.ceil(num/skip_n)) as bar:
-        while success:
-            success, frame = cap.read()
-            if not success:
-                break
-            cnt += 1
-            frame = expand(frame,pm)
-            if skip_n > 1 and cnt % skip_n != 1:
-                continue
-            progressBar['value'] = cnt
-            root.update()
+    stdoutpb.reset(skip_n)
+    
+    while success:
+        success, frame = cap.read()
+        if not success:
+            break
+        cnt += 1
+        frame = expand(frame,pm)
+        if skip_n > 1 and cnt % skip_n != 1:
+            continue
+        progressBar['value'] = cnt
+        root.update()
 
-            rtn, center = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],midval, 15, pre_state, np.linalg.norm(size) // 10, OutWindow)
-            # thresh_dist = np.linalg.norm(size) // 10
-            if rtn==0:
-                pre_state = -1
-                domain = (0,size[1] - 1,0,size[0] - 1)
-                if OutWindow and OutWindow.display:
-                    printb(str(cnt)+': '+'black', OutWindow)
-                else:
-                    file.write(f'{cnt} 0,0\n')
-            elif rtn=='q':
-                printb('用户退出', OutWindow)
-                cv.destroyAllWindows()
-                break
+        rtn, center = color_deal(frame[domain[0]:domain[1]+1,domain[2]:domain[3]+1],midval, 15, pre_state, np.linalg.norm(size) // 10, OutWindow)
+        # thresh_dist = np.linalg.norm(size) // 10
+        if rtn==0:
+            pre_state = -1
+            domain = (0,size[1] - 1,0,size[0] - 1)
+            if OutWindow and OutWindow.display:
+                printb(str(cnt)+': '+'black', OutWindow)
             else:
-                center_0 = (center[0]+domain[0], center[1]+domain[2])
-                frame_show = frame.copy()
-                domain = (domain[0]+center[0]-border,domain[0]+center[0]+border, domain[2]+center[1]-border,domain[2]+center[1]+border)
-                # restrict to boundary
-                domain = restrict_to_boundary(domain, size[1], size[0])
+                file.write(f'{cnt} 0,0\n')
+        elif rtn=='q':
+            printb('用户退出', OutWindow)
+            cv.destroyAllWindows()
+            break
+        else:
+            center_0 = (center[0]+domain[0], center[1]+domain[2])
+            frame_show = frame.copy()
+            domain = (domain[0]+center[0]-border,domain[0]+center[0]+border, domain[2]+center[1]-border,domain[2]+center[1]+border)
+            # restrict to boundary
+            domain = restrict_to_boundary(domain, size[1], size[0])
 
-                if OutWindow and OutWindow.display:
-                    '''中心点的圆点是在deal_color()中画的'''
-                    cv.rectangle(frame_show, (domain[2],domain[0]), (domain[3],domain[1]), (0,0,255), 1)
-                    domain_show = (domain[0]-border, domain[1]+border, domain[2]-border, domain[3]+border)
-                    domain_show = restrict_to_boundary(domain_show, size[1],size[0])
-                    if my_show(dcut(frame_show, domain_show),ratio=4, _time=100):
-                        cv.destroyAllWindows()
-                        break
-                    printb(str(cnt)+': '+print_mid_point(center_0), OutWindow)
-                else:
-                    file.write(f'{cnt} {print_mid_point(center_0)}\n') # standard format
+            if OutWindow and OutWindow.display:
+                '''中心点的圆点是在deal_color()中画的'''
+                cv.rectangle(frame_show, (domain[2],domain[0]), (domain[3],domain[1]), (0,0,255), 1)
+                domain_show = (domain[0]-border, domain[1]+border, domain[2]-border, domain[3]+border)
+                domain_show = restrict_to_boundary(domain_show, size[1],size[0])
+                if my_show(dcut(frame_show, domain_show),ratio=4, _time=100):
+                    cv.destroyAllWindows()
+                    break
+                printb(str(cnt)+': '+print_mid_point(center_0), OutWindow)
+            else:
+                file.write(f'{cnt} {print_mid_point(center_0)}\n') # standard format
 
-                pre_state = 1
-
-            bar()
-        # while
+            pre_state = 1
+            stdoutpb.update(cnt)
+    # while
         
+    stdoutpb.update(-1) # 标志结束
     if OutWindow and OutWindow.display:
         cv.destroyAllWindows() 
         pass
@@ -496,107 +506,59 @@ def meanshift(cap,kind,root=None,OutWindow=None,progressBar=None,pm=1, skip_n=1)
     stdoutpb = Stdout_progressbar(num)
     cnt = 0
     progressBar['maximum'] = num
-    # OutWindow.discontinue = False
-    # print(OutWindow.ratio)
-    
-    if kind == 'front':
-        if OutWindow and OutWindow.display:
+
+    if OutWindow and OutWindow.display:
             OutWindow.lift()
             # OutWindow.WindowsLift()
             # OutWindow.textboxprocess.delete('0.0','end')
             OutWindow.textboxprocess.insert('0.0',"帧序号：[中心点坐标]\n")
-        else:
-            file = open('out-meanshift-1.txt','w')
-        stdoutpb.reset(skip_n)
-        while(True):
-            # 4.2 获取每一帧图像
-            
-            ret, frame = cap.read()
-            if ret == True:
-                cnt += 1
-                if skip_n > 1 and cnt % skip_n != 1:
-                    continue
-                progressBar['value'] = cnt
-                root.update()
-
-                frame = expand(frame,pm)
-                x, y, w, h = track_window
-                if OutWindow and OutWindow.display:
-                    OutWindow.textboxprocess.insert("0.0",str(cnt) + ': [' + print_mid_point((y, y+h, x, x+w)) + ']\n')
-                else:
-                    file.write(f'{cnt} {print_mid_point((y, y+h, x, x+w))}\n') # standard format
-                    # file.write(print_mid_point((y, y+h, x, x+w)) + '\n')
-
-                # 4.3 计算直方图的反向投影
-                hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-                dst = cv.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
-
-                # 4.4 进行meanshift追踪
-                ret, track_window = cv.meanShift(dst, track_window, term_crit)
-                # ret, track_window = cv2.CamShift(dst, track_window, term_crit)
-
-                # center, size, angle = ret # 解包
-
-                # 4.5 将追踪的位置绘制在视频上，并进行显示
-                if OutWindow and OutWindow.display:
-                    x, y, w, h = track_window
-                    img2 = cv.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
-                    
-                    rtn = my_show(img2,OutWindow.ratio, 60)
-                    if rtn == 1:
-                        return 'stop'
-                
-                stdoutpb.update(cnt)
-            else:
-                break
     else:
-        if OutWindow and OutWindow.display:
-            OutWindow.lift()
-            # OutWindow.textboxprocess.delete('0.0','end')
-            OutWindow.textboxprocess.insert('0.0',"帧序号：[中心点坐标]\n")
-        else:
-            file = open('out-meanshift-2.txt','w')
-        stdoutpb.reset(skip_n)
-        while(True):
-            # 4.2 获取每一帧图像
-            
-            ret, frame = cap.read()
-            if ret == True:
-                cnt += 1
-                if skip_n > 1 and cnt % skip_n != 1:
-                    continue
-                progressBar['value'] = cnt
-                root.update()
+        file = open('out-meanshift-1.txt','w') if kind == 'front' else open('out-meanshift-2.txt','w')
+        
+    stdoutpb.reset(skip_n)
+    while(True):
+        # 4.2 获取每一帧图像
+        
+        ret, frame = cap.read()
+        if ret == True:
+            cnt += 1
+            if skip_n > 1 and cnt % skip_n != 1:
+                continue
+            progressBar['value'] = cnt
+            root.update()
 
-                frame = expand(frame,pm)
-                x, y, w, h = track_window
-                if OutWindow and OutWindow.display:
-                    OutWindow.textboxprocess.insert("0.0",str(cnt) + ': [' + print_mid_point((y, y+h, x, x+w)) + ']\n')
-                else:
-                    file.write(f'{cnt} {print_mid_point((y, y+h, x, x+w))}\n') # standard format
-
-                # 4.3 计算直方图的反向投影
-                hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
-                dst = cv.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
-
-                # 4.4 进行meanshift追踪
-                ret, track_window = cv.meanShift(dst, track_window, term_crit)
-                # ret, track_window = cv2.CamShift(dst, track_window, term_crit)
-
-                # center, size, angle = ret # 解包
-                
-                # 4.5 将追踪的位置绘制在视频上，并进行显示
-                if OutWindow and OutWindow.display:
-                    x, y, w, h = track_window
-                    img2 = cv.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
-                    
-                    if my_show(img2,OutWindow.ratio, 60):
-                        return 'stop'
-                
-                stdoutpb.update(cnt)
+            frame = expand(frame,pm)
+            x, y, w, h = track_window
+            if OutWindow and OutWindow.display:
+                OutWindow.textboxprocess.insert("0.0",str(cnt) + ': [' + print_mid_point((y, y+h, x, x+w)) + ']\n')
             else:
-                break
-    cv.destroyAllWindows()
+                file.write(f'{cnt} {print_mid_point((y, y+h, x, x+w))}\n') # standard format
+                # file.write(print_mid_point((y, y+h, x, x+w)) + '\n')
+
+            # 4.3 计算直方图的反向投影
+            hsv = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
+            dst = cv.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
+
+            # 4.4 进行meanshift追踪
+            ret, track_window = cv.meanShift(dst, track_window, term_crit)
+            # ret, track_window = cv2.CamShift(dst, track_window, term_crit)
+
+            # center, size, angle = ret # 解包
+
+            # 4.5 将追踪的位置绘制在视频上，并进行显示
+            if OutWindow and OutWindow.display:
+                x, y, w, h = track_window
+                img2 = cv.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
+                
+                rtn = my_show(img2,OutWindow.ratio, 60)
+                if rtn == 1:
+                    return 'stop'
+            
+            stdoutpb.update(cnt)
+        else:
+            break
+    
+    stdoutpb.update(-1) # 标志结束
     if OutWindow and OutWindow.display:
         return 'OK'
     file.close()
@@ -661,26 +623,20 @@ def rotate(img, angle, center=None, scale=1.0):
 
 """计算一个点绕另一个点旋转后的坐标"""
 def rotate_point(point, center, deg):
-    # 将角度转换为弧度
-    rad = math.radians(deg)
+    """
+    deg > 0: 逆时针旋转
+    """
+    rad = deg * math.pi / 180
+    rows = center[1]*2
+    cols = center[0]*2
+    x,y = point
+    y1 = int((y - rows/2) * math.cos(rad) - (x - cols/2) * math.sin(rad) + rows/2)
+    x1 = int((y - rows/2) * math.sin(rad) + (x - cols/2) * math.cos(rad) + cols/2)
 
-    # 提取点的坐标
-    x, y = point
-    cx, cy = center
+    if not in_boundary((y1, x1), rows, cols):
+        return -1, -1
 
-    # 计算相对于中心点的坐标
-    rel_x = x - cx
-    rel_y = y - cy
-
-    # 应用旋转矩阵
-    rotated_x = rel_x * math.cos(rad) - rel_y * math.sin(rad)
-    rotated_y = rel_x * math.sin(rad) + rel_y * math.cos(rad)
-
-    # 计算旋转后的点的坐标
-    new_x = rotated_x + cx
-    new_y = rotated_y + cy
-
-    return new_x, new_y
+    return x1, y1
 
 '''卷积操作结果，用cv2的函数实现'''
 def conv2d_res(frame, kernal, pos, angle=0):
@@ -761,97 +717,65 @@ def max_conv2d(frame, domain, kernal, angle, display):
 
     return max_pos, max_value # 回传中心点
 
-'''previous version of max_conv2d''' 
-'''def max_conv2d(frame, domain, K, display=1, now_angle=0, rotate_angle=5):
-    """
-        param:
-            frame: the img to be convoluted
-            domain: the domain of the frame to be convoluted
-            K: the kernal
-            display: whether to display the result
-            rotate_angle: the angle to rotate the img
-    """
-
-    # transform the angle to rad
-    now_rad = np.deg2rad(now_angle)
-    rotate_rad = np.deg2rad(rotate_angle)
-
-    # rotate the kernal to previous position
-    K = rotate(K,now_rad)
-
-    # rotate the kernal clockwise by rotate_angle
-    K_cw = rotate(K,rotate_rad)
-
-    # rotate the kernal counterclockwise by rotate_angle
-    K_ccw = rotate(K,-rotate_rad)
-
-    max_value = -1e7
-    max_pos = (-1,-1)
-    max_angle = 0
-    for idx, _K in enumerate([K_cw,K,K_ccw]):
-        for i in range(domain[0],domain[1]+1):
-            for j in range(domain[2],domain[3]+1):
-                now_value = conv2d_res(frame,_K,(i,j))
-                if now_value > max_value:
-                    max_value = now_value
-                    max_pos = (i,j)
-                    max_angle = (idx-1)*rotate_angle
-                    
-    if max_value == 0:
-        return (-1,-1)
+def max_template(frame, domain, template, angle, method=cv2.TM_CCORR_NORMED, display=False):
+    '''
+    method in ['cv.TM_CCOEFF', 'cv.TM_CCOEFF_NORMED', 'cv.TM_CCORR',
+ 'cv.TM_CCORR_NORMED']
+    '''
     
-    max_pos_ori = max_pos
-    h, w = K.shape
-    max_pos_center = (max_pos[0] + h//2, max_pos[1] + w//2)
-
+    rad = angle * 3.1416 / 180
+    th, tw = template.shape
+    
+    frame = frame[domain[0]:domain[1]+th, domain[2]:domain[3]+tw]
     if display:
-        frame_show = cv.cvtColor(frame,cv.COLOR_GRAY2BGR)
-        frame_show = cv.circle(frame_show,tuple(reversed(max_pos_center)),3,(0,0,255))
-        frame_show = dcut(frame_show,(max_pos_center[0]-20,max_pos_center[0]+1+20,max_pos_center[1]-20,max_pos_center[1]+1+20))
-        if pstatus == 'debug':
-            # print(frame_show.shape)
-            pass
-        if my_show(frame_show, _time=100):
-            return (-1,-1), 0
-        print('max_value: ' + str(max_value))
-        print('max_pos: ' + str(max_pos))
-        print('max_angle: ' + str(max_angle))
-    return max_pos_ori, now_angle+max_angle
-'''
-
-"""previous version of edge"""
-'''def edge(frame):
+        frame_show = frame.copy()
+        h, w = frame_show.shape
+        cv.imshow("frame", cv.resize(frame_show, (600, int(600/w*h))))
+        if cv.waitKey(1) == ord('q'):
+            exit(0)
     
-    frame = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
-    kernelx = np.array([[-1, 0], [0, 1]], dtype=int)
-    kernely = np.array([[0, -1], [1, 0]], dtype=int)
-    robert = (kernelx, kernely)
-    prewitt = (np.array([[-1,-1,-1],[0,0,0],[1,1,1]]),
-               np.array([[-1,0,1],[-1,0,1],[-1,0,1]]))
+    fh, fw = frame.shape
+    M = cv.getRotationMatrix2D((fw/2, fh/2), angle, 1)
+    rotated = cv.warpAffine(frame, M, (fw, fh))
     
-    x = cv.filter2D(frame, cv.CV_16S, prewitt[0])
-    y = cv.filter2D(frame, cv.CV_16S, prewitt[1])
+    corr = cv2.matchTemplate(rotated, template, method)
     
-    absX = cv.convertScaleAbs(x)
-    absY = cv.convertScaleAbs(y)
-    res = cv.addWeighted(absX, 0.5, absY, 0.5, 0)
-    return res
-'''
-
-"""
-def contour(frame):  # 利用内置方法找到轮廓
-    res = frame.copy()
-    frame = cv.cvtColor(frame,cv.COLOR_BGR2GRAY)
-    frame = cv.GaussianBlur(frame, (11, 11), 0)
+    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(corr)
     
-    edge = cv.Canny(frame,30,150)
-    my_show(edge)
+    """display"""
+    # corr = (corr - min_val) / (max_val-min_val) # [0,1]
+    corr = corr ** 5 # 类似gamma校正
+    # 显示响应图
+    '''plt.figure(0)
+    plt.imshow(corr, cmap='gray')
+    plt.title('Normalized Correlation Response Map')
+    plt.colorbar()
+    plt.scatter(*max_loc, c='r')
+    max_loc_0 = rotate_point(max_loc, (fw/2, fh/2), -angle)
+    plt.scatter(*max_loc_0, c='b')
+    plt.show()'''
     
-    contour, rtn = cv.findContours(edge, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    cv.drawContours(res, contour,-1,(0,255,0),2)
-    my_show(res)
-    return res
-"""
+    # 显示大图和小图和框的位置
+    '''plt.figure(1)
+    plt.subplot(1, 2, 1)
+    plt.imshow(cv2.cvtColor(rotated, cv2.COLOR_BGR2RGB))
+    plt.title('Large Image')
+    plt.subplot(1, 2, 2)
+    plt.imshow(cv2.cvtColor(template, cv2.COLOR_BGR2RGB))
+    plt.title('Small Image')
+    plt.show()'''
+    
+    # 得到最值点
+    if method in [cv.TM_SQDIFF, cv.TM_SQDIFF_NORMED]:
+        raise Exception('not implemented')
+    
+    # 将最值点旋转回去
+    # max_loc: yx
+    max_loc_0 = rotate_point(max_loc, (fw/2, fh/2), -angle)
+    
+    max_loc_1 = (max_loc_0[0] + domain[2], max_loc_0[1] + domain[0])
+    # 返回max_loc, max_value
+    return max_loc_1, max_val
 
 def get_frame(number):
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
@@ -885,12 +809,152 @@ def rect_points(points):
     Y = [y[1] for y in points]
     return (min(Y), max(Y), min(X), max(X))
 
-"""特征提取的主函数"""
-def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1, turn_start=1, turn_end=0) -> 0|1:
+"""特征提取的主函数-用模版匹配"""
+def feature_template(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1, turn_start=1, turn_end=0):
     """
     return: OK | stop
     """
-    offset = 5
+    thresh_value = 0.9
+    initial_offset = 10
+    detect_offset = 60
+    
+    cap.set(cv.CAP_PROP_POS_FRAMES, turn_start - 1)
+    num = cap.get(7) # 获取视频总帧数
+    
+    ret, frame0 = cap.read() # 读取第一帧
+    size = frame0.shape[:2][::-1]
+    # frame0 = cv2.GaussianBlur(frame0, (3,3), 0)
+    
+    Trc = Tractor()
+    showinfo(message='请选择初始矩形框')
+    r, h, c, w = Trc.select_rect(frame0)
+    if r is None:
+        printb('用户取消', OutWindow)
+        return 'stop'
+    template = cv.cvtColor(frame0[r:r+h, c:c+w], cv.COLOR_BGR2GRAY)
+    th, tw = template.shape
+    
+    if OutWindow and OutWindow.display:
+        printb('start:', OutWindow)
+    else:
+        file = open('out-feature-1.txt','w') if kind == 'front' else open('out-feature-2.txt','w')
+
+    cap.set(cv.CAP_PROP_POS_FRAMES, turn_start - 1)
+    pre_angle = 0  # 初始化为0
+    pre_state = 0  # init
+    domain = (r - initial_offset,r + initial_offset,c - initial_offset,c+ initial_offset)
+    
+    stdoutpb = Stdout_progressbar(num)
+    progressBar['maximum'] = num
+    cnt = turn_start - 1
+    
+    stdoutpb.reset(skip_n)
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        frame_show = frame.copy()
+
+        cnt += 1
+        if turn_end > 0 and cnt > turn_end:
+            break
+        if skip_n > 1 and cnt % skip_n != 1:
+            continue
+        progressBar['value'] = cnt
+        root.update()
+        
+        if OutWindow and OutWindow.display:
+            print(f'\n{cnt} {"===" * 10} {cnt}')
+        frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        if pre_state in [0, 1]:
+            angles = list(range(pre_angle-3, pre_angle+3+1)) # 循环7次
+            # angles = [0,20]
+        else: # 上一帧未找到
+            angles = [-90, -60, -30, 0, 30, 60, 90] # 循环7次
+            
+        max_val = 0
+        max_loc = [-1, -1]
+        for angle in angles:
+            loc, val = max_template(frame, domain, template, angle, display=(angle==pre_angle))
+            if val > max_val:
+                max_val = val
+                max_loc = loc
+                max_angle = angle
+                
+        if np.sum(max_loc) < 0:
+            cv.destroyAllWindows()
+            raise Exception("error")
+
+        if max_val < thresh_value: # [0,1]
+            # pre_angle = 0
+            pre_state = 2 # black
+            if OutWindow and OutWindow.display:
+                if my_show(frame_show, ratio=1, _time=100):
+                    return 'stop'
+                printb('max_value: ' + str(max_val), OutWindow, True)
+                printb('black', OutWindow)
+            else:
+                file.write(f'{cnt} black\n')
+                file.write(f'{cnt} relocate...\n')
+            print('!!!  black  !!!\nrelocate...')
+            
+            ob = OUTER_BORDER # int
+            domain = (ob, size[1]-ob, ob, size[0]-ob)
+            
+        else:
+            pre_angle = max_angle
+            pre_state = 1
+            if OutWindow and OutWindow.display:
+                # 显示匹配框
+                x0, y0 = max_loc
+                points =   [[x0,   y0   ],
+                            [x0+tw,y0   ],
+                            [x0+tw,y0+th],
+                            [x0,   y0+th]]
+                points = [rotate_point(each, max_loc, -max_angle) for each in points]
+                
+                cv.polylines(frame_show, [np.array(points).astype(np.int32)], True, (0, 0, 255), 2)
+                
+                # cv.rectangle(frame, *max_loc, (max_loc[0] + th, max_loc[1] + tw), (0,0,255), 2)
+                if my_show(frame_show, _time=100):
+                    return 'stop'
+                
+                printb('max_value: ' + str(max_val), OutWindow, True)
+                printb('now_angle: ' + str(max_angle), OutWindow, True)
+                printb('now_loc: ' + str(max_loc), OutWindow, True)
+            else:
+                # 写入文件
+                file.write(f'{cnt} {max_loc[1]}, {max_loc[0]}\n') # 中心点
+                file.write(f'{cnt} angle {max_angle}\n') # 辅助角度变化
+                pass
+            
+            domain = (max_loc[1]-detect_offset,max_loc[1]+detect_offset, max_loc[0]-detect_offset,max_loc[0]+detect_offset) # 更新domain
+            domain = restrict_to_boundary(domain, size[1]-th, size[0]-tw)
+            # print('domain:',domain)
+            print(size, tw)
+                          
+        if OutWindow and OutWindow.display:
+            printb(f'{cnt} {"===" * 10} {cnt}', OutWindow)
+        stdoutpb.update(cnt)
+
+    stdoutpb.update(-1)
+    showinfo(message='检测完成！')
+    if OutWindow and OutWindow.display:
+        cv.destroyAllWindows()
+    else:
+        file.close()
+    return 'OK'
+                
+"""特征提取的主函数"""
+def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1, turn_start=1, turn_end=0, use_origin=False) -> 0|1:
+    """
+    return: OK | stop
+    """
+    if not use_origin:
+        return feature_template(cap,kind,OutWindow,progressBar,root,skip_n,turn_start,turn_end=turn_end)
+    initial_offset = 10
+    detect_offset = 60
     cap.set(cv.CAP_PROP_POS_FRAMES, turn_start - 1)
     frame_num = cap.get(7) # 获取视频总帧数
 
@@ -914,11 +978,9 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     else:
         file = open('out-feature-1.txt','w') if kind == 'front' else open('out-feature-2.txt','w')
 
-    domain = (y + h//2 - offset,y + h//2 + offset,x + w//2 - offset,x + w//2 + offset)
+    # domain = (y + h//2 - initial_offset,y + h//2 + initial_offset,x + w//2 - initial_offset,x + w//2 + initial_offset)
+    domain = (y - initial_offset, y + initial_offset, x - initial_offset, x + initial_offset)
     max_angle = 0  # 初始的angle必须是0
-    # max_angle_pos = max_conv2d(cv.cvtColor(frame0, cv.COLOR_BGR2GRAY),domain,Idf.K, 0, OutWindow and OutWindow.display)[0]
-    # 初始化时预先找到一个中心点：False
-    # domain = (max_angle_pos[0]-offset,max_angle_pos[0]+offset, max_angle_pos[1]-offset,max_angle_pos[1]+offset) # 更新domain
 
     # 初始化参数
     stdoutpb = Stdout_progressbar(frame_num)
@@ -928,16 +990,20 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
     cnt = turn_start - 1
 
     cap.set(cv.CAP_PROP_POS_FRAMES, turn_start - 1)
-    stdoutpb.reset(skip_n=skip_n)
     pre_angle = 0
     pre_state = 0  # init
     max_value_thresh = MAX_VALUE_THRESH
     # 或者为第一帧max_value的一半
+    # frame0 = cv2.GaussianBlur(frame0, (3,3), 0)
     max_value = max_conv2d(cv.cvtColor(frame0, cv.COLOR_BGR2GRAY),domain,Idf.K, 0, OutWindow and OutWindow.display)[1]
     # max_value_thresh = max_value//2
 
+    stdoutpb.reset(skip_n=skip_n)
     while success:
         success, frame = cap.read()
+        
+        """先经过一个高斯平滑降噪"""
+        # frame = cv2.GaussianBlur(frame, (3,3), 0)
         if not success:
             stdoutpb.update(-1)
             break
@@ -992,7 +1058,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
                 printb('max_value: ' + str(max_value), OutWindow)
                 printb('black', OutWindow)
                 print('max_value:', max_value)
-                print('black')
+                print('!!!  black  !!!\nrelocate...')
                 print(f'{cnt} {"===" * 10} {cnt}')
             else:
                 # 记录'black'
@@ -1001,12 +1067,11 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
 
             pre_angle = 0
             pre_state = 2 # black
-
             stdoutpb.update(cnt)
             continue
 
 
-        domain = (max_angle_pos[0]-20,max_angle_pos[0]+20, max_angle_pos[1]-20,max_angle_pos[1]+20) # 更新domain
+        domain = (max_angle_pos[0]-detect_offset,max_angle_pos[0]+detect_offset, max_angle_pos[1]-detect_offset,max_angle_pos[1]+detect_offset) # 更新domain
 
         # important:
         domain = restrict_to_boundary(domain, size[1], size[0])
@@ -1017,8 +1082,8 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
             frame_show = cv.cvtColor(frame, cv.COLOR_GRAY2BGR)
             frame_show = cv.circle(frame_show, max_pos_center[::-1], 3, (0, 0, 255))
             frame_show = dcut(frame_show, restrict_to_boundary((
-                max_pos_center[0] - 40, max_pos_center[0] + 1 + 40, max_pos_center[1] - 40,
-                max_pos_center[1] + 1 + 40), size[1], size[0]))
+                max_pos_center[0] - detect_offset, max_pos_center[0] + 1 + detect_offset, max_pos_center[1] - detect_offset,
+                max_pos_center[1] + 1 + detect_offset), size[1], size[0]))
 
             if my_show(frame_show, ratio=4, _time=100):
                 cv.destroyAllWindows()
@@ -1033,7 +1098,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
             print(f'{cnt} {"==="*10} {cnt}')
         else:
             # 记录中心点
-            file.write(f'{cnt} {max_pos_center[0]},{max_pos_center[1]}\n') # standard format
+            file.write(f'{cnt} {max_pos_center[0]}, {max_pos_center[1]}\n') # standard format
             file.write(f'{cnt} angle {max_angle}\n') # 辅助角度变化
         pre_angle = max_angle
         pre_state = 1 # normal
@@ -1043,6 +1108,7 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
         stdoutpb.update(cnt)
 
     # 结束
+    stdoutpb.update(-1)
     showinfo(message='检测完成！')
     if OutWindow and OutWindow.display:
         cv.destroyAllWindows()
@@ -1050,82 +1116,6 @@ def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1
         file.close()
     return 'OK'
 
-"""previous version: convolution方法识别主函数"""
-'''def feature(cap,kind='front',OutWindow=None,progressBar=None,root=None, skip_n=1): 
-    offset = 5
-    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
-    frame_num = cap.get(7)
-    
-    ret, frame0 = cap.read()
-    print(frame0.shape)
-    size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
-            int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
-    Idf = Identifier()
-    showinfo(message='请选择初始矩形框')
-    rtn_ = Idf.select_window(frame0)
-    if rtn_ == 'q':
-        printb('', OutWindow)
-        return
-    (x,y,w,h), minis = rtn_
-    if OutWindow and OutWindow.display:
-        printb("0 :", OutWindow)
-    else:
-        file = open('out-feature-1.txt','w') if kind == 'front' else open('out-feature-2.txt','w')
-
-    domain = (y,y+h,x,x+w)
-    # domain[0] = max(0, domain[0] - offset)
-    # domain[1] = min(size[1], domain[1] + offset)
-    # domain[2] = max(0, domain[2] - offset)
-    # domain[3] = min(size[0], domain[3] + offset)
-    now_pos, now_angle = max_conv2d(cv.cvtColor(frame0, cv.COLOR_BGR2GRAY),domain,Idf.K, OutWindow and OutWindow.display, 0, 0)
-
-    domain = (now_pos[0]-offset,now_pos[0]+offset, now_pos[1]-offset,now_pos[1]+offset)
-    
-    stdoutpb = Stdout_progressbar(frame_num, not(OutWindow and OutWindow.display))
-    progressBar['maximum'] = frame_num
-    success = 1
-    cnt = 0
-    cap.set(cv.CAP_PROP_POS_FRAMES, 0)
-    stdoutpb.reset(skip_n=skip_n)
-    while success:
-        success, frame = cap.read()
-        if not success:
-            stdoutpb.update(-1)
-            break
-        cnt += 1
-        if skip_n > 1 and cnt % skip_n != 1:
-            continue
-        progressBar['value'] = cnt
-        root.update()
-
-        frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-
-        # rotate the frame
-        frame = rotate(frame, now_angle)
-
-        if OutWindow and OutWindow.display:
-            printb(f'{cnt} :', OutWindow)
-        now_pos, now_angle = max_conv2d(frame,domain,Idf.K, OutWindow and OutWindow.display, now_angle)
-        if now_pos == (-1,-1): # abnormal status
-            print('end(manually)')
-            cv.destroyAllWindows()
-            return 1
-
-        domain = (now_pos[0]-12,now_pos[0]+12, now_pos[1]-12,now_pos[1]+12)
-        if OutWindow and OutWindow.display:
-            printb('now_pos:' + str(now_pos), OutWindow)
-            printb('now_angle:' + str(now_angle), OutWindow)
-        else:
-            # file.write(f'{cnt} {str(now_pos).replace("(","").replace(")","")}\n')
-            file.write(f'{cnt} {now_pos[0]},{now_pos[1]}\n') # standard format
-
-        stdoutpb.update(cnt)
-        
-    showinfo(message='检测完成！')
-    file.close()
-    cv.destroyAllWindows()
-    return 0'''
-        
 def cleanout(points, rect):
     X = [x[0] for x in points]
     Y = [x[1] for x in points]
@@ -1147,7 +1137,32 @@ def cleanout(points, rect):
     
     return cleaned_points
     
-def tilt(edge, display, method='linear regression'):
+def standardize(X):
+   """
+   标准化数据
+   """
+   mean = np.mean(X, axis=0)
+   std = np.std(X, axis=0)
+   return (X - mean) / std
+
+def pca(X, Y, mean=None):
+    """
+    PCA主成分分析
+    """
+    A = np.vstack((X,Y)).T
+    
+    if mean is None:
+        mean = np.mean(A, axis=0)
+    
+    A = A - mean
+    
+    U, sigma, Vt = np.linalg.svd(A)
+    
+    fpc = Vt[0,:]
+    
+    return fpc, mean
+
+def tilt(edge, display, methodod='linear regression'):
     rect0, minmax_points = rect_cover(edge,55)
     
     # 用处理后的线性回归方法做角度计算
@@ -1163,8 +1178,22 @@ def tilt(edge, display, method='linear regression'):
     
     X = [x[0] for x in points]
     Y = [-x[1] for x in points]
-    f = np.polyfit(X,Y,1)
-    angle = math.atan(f[0])*180/math.pi
+    """注：不应该用polyfit，应该用PCA-2023.10"""
+    # f = np.polyfit(X,Y,1)
+    
+    mean = (rect[2]+rect[3])/2, -(rect[0]+rect[1])/2
+    fpc, mean = pca(X, Y, mean)
+    # print(fpc)
+    
+    if fpc[0] == 0:
+        f = (1000, 0)
+        angle = 90
+    else:
+        f = min(1000, fpc[1] / fpc[0]), 0
+        angle = math.atan(f[0])*180/math.pi
+        
+    # print(angle)
+    
     if display:
         edge_show1 = cv.line(edge_show1, (rect[2]-5,(rect[0]+rect[1])//2+int(f[0]*((rect[3]-rect[2])/2+5))), (rect[3]+5,(rect[0]+rect[1])//2-int(f[0]*((rect[3]-rect[2])/2+5))), 255, 2)
         if my_show(edge_show1, _time=100):
@@ -1188,7 +1217,8 @@ def to_hsv(img: Grayimg):
     
     return hsv_image
 
-def edge(img: BGRimg, _operator='prewitt') -> Grayimg:
+# 锐化
+def edge(img: BGRimg, _operator='sobel') -> Grayimg:
     """
         operator: sobel, prewitt, ... 
     """
@@ -1389,7 +1419,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
                     cv.destroyAllWindows()
                     return 'stop'
             else:
-                file_center.write(f'{cnt} {print_mid_point(center)}\n')
+                file_center.write(f'{cnt} {print_mid_point(center, sep=" ")}\n')
                 file_theta.write(f'{cnt} {round(angle,2)}\n')
 
             # LOOP TAIL
@@ -1398,6 +1428,8 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
             break
         
     # PROCESS TAIL
+    stdoutpb.update(-1)
+    
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.insert('0.0','检测完成，展示模式不修改数据\n')
     else:
@@ -1407,7 +1439,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
     cv2.destroyAllWindows()
     return 'OK'
 
-"""轮廓方法识别主函数：线性回归"""
+"""轮廓方法识别主函数：PCA"""
 def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_start=1,turn_end=0):
     
     cap.set(cv.CAP_PROP_POS_FRAMES, 0)
@@ -1415,6 +1447,8 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
     ret, frame0 = cap.read()
     size = (int(cap.get(cv.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv.CAP_PROP_FRAME_HEIGHT)))
+    background_img = cv.resize(background_img, size)
+    
     frame_num = cap.get(7)
     showinfo(message='请选择初始矩形框')
     file_theta = open('out-contour-theta.txt','w')
@@ -1428,11 +1462,27 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
     domain = (r,r+h,c,c+w) # 上下左右
     
     roi = frame0[y:y + h, x:x + w]
-    edge1 = edge(roi)
-    edge_background = edge(dcut(background_img,domain))
-    cha = cv.subtract(edge1, edge_background)
+    # edge1 = edge(roi)
+    # edge_background = edge(dcut(background_img,domain))
+    
+    background_roi = dcut(background_img, domain)
+    # subtract = cv2.subtract(background_roi, roi)
+    subtract = cv2.subtract(roi,background_roi)
+
+    # 使用Canny边缘检测算子提取边缘
+    # edges = cv2.Canny(subtract, 100, 200)
+    edges = edge(subtract)
+
+    # 使用中值滤波
+    blurred = cv2.blur(edges, (5, 5))
+
+    # 使用阈值进行二值化
+    _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
+    
+    # cha = cv.subtract(edge1, edge_background)
 
     # cha: 保留了兼容性
+    cha = thresh
 
     if OutWindow and OutWindow.display:
         if my_show(cha, _time=100):
@@ -1469,7 +1519,24 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
         progressBar['value'] = cnt
         root.update()
 
-        cha = cv.subtract(edge(dcut(frame,domain)),edge(dcut(background_img,domain)))
+        # cha = cv.subtract(edge(dcut(frame,domain)),edge(dcut(background_img,domain)))
+        subtract = cv2.subtract(dcut(background_img,domain), dcut(frame,domain))
+
+        # 使用Canny边缘检测算子提取边缘
+        # edges = cv2.Canny(subtract, 100, 200)
+        edges = edge(subtract)
+
+        # 使用中值滤波
+        blurred = cv2.blur(edges, (5, 5))
+
+        # 使用阈值进行二值化
+        _, thresh = cv2.threshold(blurred, 100, 255, cv2.THRESH_BINARY)
+        
+        # cha = cv.subtract(edge1, edge_background)
+
+        # cha: 保留了兼容性
+        cha = thresh
+        
         if OutWindow and OutWindow.display:
             OutWindow.textboxprocess.insert('0.0', f'{cnt}:\n')
         if turn_end > 0 and cnt > turn_end:
@@ -1496,6 +1563,8 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
             file_theta.write(f'{cnt} {round(angle,2)}\n')
         stdoutpb.update(cnt)
         
+    stdoutpb.update(-1)
+    cv.destroyAllWindows()
     if OutWindow and OutWindow.display:
         OutWindow.textboxprocess.insert('0.0','检测完成，展示模式不修改数据\n')
     else:
@@ -1527,6 +1596,7 @@ if pstatus == "debug":
     size = (int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), 
             int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     background = cv2.imread(r"D:\GitHub\Cockroach-video-parse\src\background-feature.png")
+    background = cv2.resize(background, size) # 需要匹配视频的大小
     from tkinter import *
     Prompt = "this is a debug trial "
     class OutputWindow:
@@ -1554,10 +1624,11 @@ if pstatus == "debug":
         tier = Tk()
         window = OutputWindow(tier)
         window.display = 1
-        # meanshift(cap,'front',FakeMs(),window,dict())
+        # meanshift(cap,'back',FakeMs(),None,dict())
         # main_color(cap,'front',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1)
-        # feature(cap,'back',OutWindow=None,progressBar=dict(),root=FakeMs(),skip_n=1, turn_start=1)
-        contour_lr(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
+        # feature(cap,'front',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=1, turn_start=250, turn_end=310, use_origin=True)
+        # feature(cap, 'back', OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=1, turn_start=250, turn_end=350)
+        contour_lr(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=250)
         # contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
 
         # tier.mainloop()
