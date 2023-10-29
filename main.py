@@ -1,3 +1,4 @@
+# main.py
 from tkinterUI import main
 
 main("release")

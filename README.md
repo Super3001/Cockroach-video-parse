@@ -29,7 +29,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 | camshift    | 快   | 较高 | no  | ok |
 | contour     | 慢   | 一般 | no  | ok |
 | contourCNN  | 较快 | 较高 | no  | ok |
-| feature     | 较慢 | 高   | yes | 困难 |
+| feature     | 较慢 | 高   | yes | bad |
 
 ## 功能实现：
 
@@ -204,7 +204,7 @@ To pack an exe: pyinstaller -F [-n *filename*] main.py
 9.9
 - [ ] tractor双击放大
 - [x] 角度趋势相对应
-- [ ] 打包成exe无法显示matplotlib组件的问题
+- [x] 打包成exe无法显示matplotlib组件的问题
 
 10.8
 

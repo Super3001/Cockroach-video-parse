@@ -1,17 +1,15 @@
+# processing.py
 import cv2 as cv
 from tkinter.messagebox import showinfo, showerror, showwarning
 from tract_point import *
 import numpy as np
 import math
-# from alive_progress import alive_bar
 from utils import dcut
 from kmeans import k_means
 import matplotlib.pyplot as plt
 
 """debug global property"""
 from control import pstatus
-# pstatus == "release"
-# pstatus == "debug"
 
 from utils import Stdout_progressbar
 
@@ -75,7 +73,7 @@ def in_boundary(point, h, w):
 
 def printb(s, OutWindow, p=False): # 打印到output board上
     s = str(s)
-    if OutWindow is not None:
+    if OutWindow is not None and OutWindow.display:
         OutWindow.textboxprocess.insert("0.0",s+'\n')
     if p:
         print(s)
@@ -876,7 +874,7 @@ def feature_template(cap,kind='front',OutWindow=None,progressBar=None,root=None,
         max_val = 0
         max_loc = [-1, -1]
         for angle in angles:
-            loc, val = max_template(frame, domain, template, angle, display=(angle==pre_angle))
+            loc, val = max_template(frame, domain, template, angle, display=False)
             if val > max_val:
                 max_val = val
                 max_loc = loc
@@ -932,7 +930,7 @@ def feature_template(cap,kind='front',OutWindow=None,progressBar=None,root=None,
             domain = (max_loc[1]-detect_offset,max_loc[1]+detect_offset, max_loc[0]-detect_offset,max_loc[0]+detect_offset) # 更新domain
             domain = restrict_to_boundary(domain, size[1]-th, size[0]-tw)
             # print('domain:',domain)
-            print(size, tw)
+            # print(size, tw)
                           
         if OutWindow and OutWindow.display:
             printb(f'{cnt} {"===" * 10} {cnt}', OutWindow)
@@ -1404,7 +1402,7 @@ def contour_camshift(cap,background_img,root,OutWindow,progressBar,skip_n=1, tur
             center, size, angle = ret # 解包
 
             if OutWindow and OutWindow.display:
-                OutWindow.textboxprocess.insert('0.0', f'{center}  {round(angle,2)}\n')
+                OutWindow.textboxprocess.insert('0.0', f'{cnt}:{center}  {round(angle,2)}\n')
 
                 # 绘制在图像上
                 pts = cv2.boxPoints(ret)
@@ -1573,7 +1571,7 @@ def contour_lr(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_star
         showinfo(message='检测完成!')
     return 'OK'
 
-def contour(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_start=1,turn_end=0, use_contour=False):
+def contour(cap,background_img,root,OutWindow,progressBar,skip_n=1, turn_start=1,turn_end=0, use_contour=True):
     """检测边缘，之后再计算角度"""
     if use_contour:
         return contour_lr(cap, background_img, root,OutWindow,progressBar,skip_n,turn_start,turn_end)
@@ -1626,9 +1624,9 @@ if pstatus == "debug":
         window.display = 1
         # meanshift(cap,'back',FakeMs(),None,dict())
         # main_color(cap,'front',root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1)
-        # feature(cap,'front',OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=1, turn_start=250, turn_end=310, use_origin=True)
+        feature(cap,'front',OutWindow=None,progressBar=dict(),root=FakeMs(),skip_n=1, turn_start=1, turn_end=0, use_origin=False)
         # feature(cap, 'back', OutWindow=window,progressBar=dict(),root=FakeMs(),skip_n=1, turn_start=250, turn_end=350)
-        contour_lr(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=250)
+        # contour_lr(cap,background,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=250)
         # contour(cap,None,root=FakeMs(),OutWindow=window,progressBar=dict(),skip_n=1, turn_start=1)
 
         # tier.mainloop()

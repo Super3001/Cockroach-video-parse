@@ -1,5 +1,4 @@
 # tract_point.py
-
 import cv2
 import tkinter as tk
 import numpy as np
@@ -345,7 +344,7 @@ class Identifier(Tractor):
                         K[i][j] = high
                     else:
                         K[i][j] = low 
-        else:
+        elif kind == 'sin':
             # transfrom gray to numpy.array
             gray = np.array(gray)
 
@@ -360,23 +359,13 @@ class Identifier(Tractor):
             
             # normalize
             self.K = self.normalize(self.K)
+            
+        else:
+            """use another function to generate kernel"""
+            raise Exception("not implemented")
     
     """feature"""
     def select_window(self,frame):
-        '''旧的写法'''
-        ''' _rtn = -1
-            while _rtn < 0:
-            _rtn = self.monitor_show(frame, function = self.mouse)
-            if _rtn == 1:
-                cv2.destroyAllWindows()
-                return 'q'
-            elif _rtn == 0:
-                self.generate_kernal(kind='sin')
-                # return g_rect, minis
-                return self.gbRect, []
-            else:
-                cv2.destroyWindow("roi") '''
-        
         self.txt(frame, select_window_prompt)
         _rtn = self.monitor_show(frame, function = self.mouse, reset_function = self.idf_reset)
         # if _rtn == 1:

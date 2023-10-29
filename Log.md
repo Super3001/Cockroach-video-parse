@@ -1,7 +1,5 @@
 # Log (Cockroadch video parse)
 
-
-
 My Log:
 
 5.25 afternoon update radius result output(file:deal_with_data.py) and not push yet and delete file...

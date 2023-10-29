@@ -1,5 +1,4 @@
 # deal_data.py
-
 import numpy as np
 from math import comb, ceil, pi, atan, sqrt
 from tkinter.messagebox import showinfo, showwarning
@@ -14,6 +13,9 @@ matplotlib.use('TkAgg')
 
 """debug global property"""
 from control import pstatus
+
+fontdict_title = {'weight':'normal','size': 20}
+fontdict_label = {'weight': 'normal', 'size': 13}
 
 def interpolate_b_spline(x, y, x_new, der=0):
     """ B 样条曲线插值 或者导数. 默认der = 0"""
@@ -254,7 +256,7 @@ class Dealer(DataParser):
                     plt.title('Plotting Curve')
                     plt.xlabel('number of frame')
                     plt.ylabel('angle(deg)') # 单位：角度
-                    plt.title(f'angle curve {i+1}')
+                    plt.title(f'angular displacement {i+1}', fontdict_title)
                     plt.legend()
                     plt.savefig(f'fig\pAngle-stimulus{i+1}.png')
                     plt.show()
@@ -288,7 +290,7 @@ class Dealer(DataParser):
         if self.has_light: self.segment(np.min(y_curve[10:])-10,np.max(y_curve[10:])+10)
         plt.xlabel('number of frame')
         plt.ylabel('angle(deg)')
-        plt.title('interpolate angle curve')
+        plt.title('interpolate angular displacement', fontdict_title)
         if self.has_light: plt.legend()
         plt.savefig('fig\pAngle_interp.png')
         plt.show()
@@ -401,13 +403,13 @@ class Dealer(DataParser):
         # plt.plot(xh, yh, color='black')  # 绘制直线，设置颜色为...
         
         plt.xlabel('number of frame')
-        plt.ylabel('angular speed(deg/s)')
-        plt.title('turning omega curve')
+        plt.ylabel('angular velocity(deg/s)')
+        plt.title('angular velocity', fontdict_title)
         self.segment(omega_min,omega_max)
         self.horizontal(0,max_f)
         # plt.legend(bbox_to_anchor=(1.05,0), loc=3, borderaxespad=0)
         plt.legend()
-        # output_file(filename="res_Angular_speed.html", title="angular speed result")
+        # output_file(filename="res_Angular_velocity.html", title="angular velocity result")
         # save(self.pOmega)
         # show(self.pOmega)
         plt.savefig('fig\pOmega.png')
@@ -456,8 +458,8 @@ class Dealer(DataParser):
                 plt.scatter(f,omega_center,c='b')
                 
         plt.xlabel('number of frame')
-        plt.ylabel('angular speed(deg/s)')
-        plt.title('turning omega curve')
+        plt.ylabel('angular velocity(deg/s)')
+        plt.title('angular velocity', fontdict_title)
         self.nframe = max(self.frames)
         self.horizontal(-2,self.nframe+2)
         plt.savefig('fig\pOmega.png')
@@ -519,11 +521,12 @@ class Dealer(DataParser):
             plt.scatter(plot_xf[-1], plot_yf[-1], color='#49DBF5', s=50, marker='*', zorder=50)
             plt.scatter(plot_xb[-1], plot_yb[-1], color='#49DBF5', s=50, marker='*', zorder=50)
                         
-        plt.xlabel(f'x({self.str_scale})')
-        plt.ylabel(f'y({self.str_scale})')
+        plt.xlabel(f'x({self.str_scale})', fontdict_label)
+        plt.ylabel(f'y({self.str_scale})', fontdict_label)
         # plt.legend(bbox_to_anchor=(1.05,0), loc=3, borderaxespad=0)
         plt.legend()
-        plt.title('path curve')
+        plt.title('path curve', fontdict=fontdict_title)
+        plt.subplots_adjust(left=0.15, right=0.95, top=0.9, bottom=0.13)
         plt.savefig('fig\pPath.png')
         plt.show()
         
@@ -548,11 +551,11 @@ class Dealer(DataParser):
                 if flag:
                     plt.scatter(self.X1[idx], self.Y1[idx], color=(1,0,0))
                     plt.scatter(self.X2[idx], self.Y2[idx], color=(1,0,0))
-                plt.xlabel(f'x({self.str_scale})')
-                plt.ylabel(f'y({self.str_scale})')
+                plt.xlabel(f'x({self.str_scale})', fontdict_label)
+                plt.ylabel(f'y({self.str_scale})', fontdict_label)
                 # plt.legend(bbox_to_anchor=(1.05,0), loc=3, borderaxespad=0)
                 plt.legend()
-                plt.title(f'path curve: stimulus{i+1}')
+                plt.title(f'path curve: stimulus{i+1}', fontdict_title)
                 plt.savefig(f'fig\pPath_{i+1}.png')
                 plt.show()
                 
@@ -572,10 +575,10 @@ class Dealer(DataParser):
             plt.scatter(self.X1[-1], self.Y1[-1], color='#49DBF5', s=50, marker='*', zorder=50)
             plt.scatter(self.X2[-1], self.Y2[-1], color='#49DBF5', s=50, marker='*', zorder=50)
                             
-        plt.xlabel(f'x({self.str_scale})')
-        plt.ylabel(f'y({self.str_scale})')
+        plt.xlabel(f'x({self.str_scale})', fontdict=fontdict_label)
+        plt.ylabel(f'y({self.str_scale})', fontdict=fontdict_label)
         plt.legend()
-        plt.title('path curve')
+        plt.title('path curve', fontdict_title)
         plt.savefig('fig\pPath.png')
         plt.show()
     
@@ -645,7 +648,7 @@ class Dealer(DataParser):
             plt.xlabel('number of stimulus')
             plt.ylabel(f'curvature({self.str_scale})^-1')
             plt.xlim(-1, len(curvs))
-            plt.title(f'turning curvature')
+            plt.title(f'curvature', fontdict=fontdict_title)     
             plt.savefig(f'fig\pCurve-sti.png')
             plt.show()
                 
@@ -686,7 +689,7 @@ class Dealer(DataParser):
 
             # plt.xlabel('number of frame')
             # plt.ylabel(f'curvature({self.str_scale})')
-            # plt.title(f'turning curvature')
+            # plt.title(f'curvature')
             # plt.savefig(f'fig\pCurve.png')
             # plt.show()
 
@@ -868,7 +871,7 @@ class Dealer(DataParser):
         plt.plot(self.frames, self.D)
         plt.xlabel('number of frame')
         plt.ylabel(f'distance unit:{self.str_scale}')
-        plt.title('distance')
+        plt.title('distance', fontdict=fontdict_title)
         plt.savefig('fig\pDist.png')
         plt.show()
         
@@ -887,15 +890,15 @@ if pstatus == "debug":
     if __name__ == '__main__':
         data_dealer = Dealer(30)
         data_dealer.parse_light(open('out-light-every.txt','r'), 30)
-        # data_dealer.parse_fbpoints(open('out-color-1.txt','r'),open('out-color-2.txt','r'),30)
-        data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
+        data_dealer.parse_fbpoints(open('out-color-1.txt','r'),open('out-color-2.txt','r'),30)
+        # data_dealer.parse_center_angle(open('out-contour-center.txt','r'),open('out-contour-theta.txt','r'),30)
         # data_dealer.parse_feature_result(open('out-feature-1.txt','r'),open('out-feature-2.txt','r'),30)
         # data_dealer.data_change_ratio(0.012)
         # data_dealer.To_centimeter(0.012)
-        # data_dealer.showPath()
+        data_dealer.showPath()
         # data_dealer.save_midpoint_data()
         # data_dealer.showCurve()
         # data_dealer.showAngle()
-        data_dealer.showOmega()
+        # data_dealer.showOmega()
         # data_dealer.showDist()
     

@@ -1,3 +1,4 @@
+# tkinterUI.py
 from tkinter import *
 from tkinter import ttk
 from tkinter import filedialog
@@ -69,7 +70,7 @@ class APP:
             for each in [self.bt7,self.bt11,self.bt9]:
                 each.config(state="normal")
         elif self.step.get() == 'process without light':
-            self.result_txt.set('查看结果(不带刺激)')
+            self.result_txt.set('查看结果(不带控制指令)')
             for each in [self.bt7,self.bt11,self.bt9]:
                 each.config(state="normal")
         elif self.step.get() == 'all able':
@@ -586,7 +587,7 @@ class APP:
             return
         self.show_progressbar()
         '''camshift被包装在contour_camshift中'''
-        _rtn = contour(self.cap,None,self.master,self.output_window,self.progressbar,self.skip_num)
+        _rtn = contour(self.cap,None,self.master,self.output_window,self.progressbar,self.skip_num,use_contour=False)
         
         cv.destroyAllWindows()
         self.hide_progressbar()
@@ -777,10 +778,10 @@ class ResWindow:
         
         button1 = Button(master, text='轨迹', width=20, font=('GB2312', 18), background='Tan', command=self.show_path)
         button1.grid(row=0, column=0, sticky=W)
-        button01 = Button(master, text='曲率', width=20, font=('GB2312', 18), background='Tan', command=self.show_curve)
-        button01.grid(row=1, column=0, sticky=W)
         button2 = Button(master, text='角度', width=20, font=('GB2312', 18), background='Tan', command=self.show_angle)
-        button2.grid(row=2, column=0, sticky=W)
+        button2.grid(row=1, column=0, sticky=W)
+        button02 = Button(master, text='曲率', width=20, font=('GB2312', 18), background='Tan', command=self.show_curve)
+        button02.grid(row=2, column=0, sticky=W)
         button3 = Button(master, text='角速度和摆动角速度', width=20, font=('GB2312', 18), background='Tan', command=self.show_move)
         button3.grid(row=3, column=0, sticky=W)
         button03 = Button(master, text=' 精度：前后点距离变化 ', width=20, font=('GB2312', 18), background='Tan', command=self.show_dist)
